@@ -28,11 +28,11 @@ class Article extends Model
     ];
 
     /**
-     * العلاقة مع المستخدم (المشرف)
+     * العلاقة مع الأدمن
      */
     public function admin(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'admin_id');
+        return $this->belongsTo(\App\Models\Admin::class, 'admin_id'); // 🔥 تغيير من User إلى Admin
     }
 
     /**
