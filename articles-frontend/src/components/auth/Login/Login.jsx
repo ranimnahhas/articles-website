@@ -1,319 +1,186 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../../context/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
 import './Login.css';
+import API_CONFIG from '../../../config';
 
 const Login = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    rememberMe: false
-  });
-  const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState({
-    email: false,
-    password: false
-  });
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [apiError, setApiError] = useState('');
-  
-  const { login, isAuthenticated, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [apiMessage, setApiMessage] = useState('');
 
-  // إصلاح: استخدام useRef لمنع الحلقة اللانهائية
-  const redirectTriggered = React.useRef(false);
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
-  useEffect(() => {
-    // فقط إذا كان المستخدم مسجل دخول ولم يتم التوجيه بعد
-    if (isAuthenticated && !authLoading && !redirectTriggered.current) {
-      console.log('🔄 التوجيه إلى Dashboard (مرة واحدة فقط)');
-      redirectTriggered.current = true;
-      
-      const from = location.state?.from?.pathname || '/admin/dashboard';
-      navigate(from, { replace: true });
+  const validateForm = () => {
+    let isValid = true;
+    
+    // Reset error messages
+    setEmailError('');
+    setPasswordError('');
+    setApiMessage('');
+    
+    // Validate email
+    if (!email.trim()) {
+      setEmailError('الرجاء إدخال البريد الإلكتروني');
+      isValid = false;
+    } else if (!isValidEmail(email.trim())) {
+      setEmailError('البريد الإلكتروني غير صحيح');
+      isValid = false;
     }
-  }, [isAuthenticated, authLoading, navigate, location]);
-
-  // إذا كان جاري التحميل، عرض شاشة تحميل
-  if (authLoading) {
-    return (
-      <div className="login-container">
-        <div className="login-card">
-          <div className="login-body">
-            <div style={{ textAlign: 'center', padding: '50px' }}>
-              <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem', marginBottom: '20px' }}></i>
-              <p>جاري التحقق من المصادقة...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // إذا كان مسجل دخول، لا تعرض صفحة Login (سيتم التوجيه عبر useEffect)
-  if (isAuthenticated) {
-    return (
-      <div className="login-container">
-        <div className="login-card">
-          <div className="login-body">
-            <div style={{ textAlign: 'center', padding: '50px' }}>
-              <i className="fas fa-check-circle" style={{ fontSize: '2rem', marginBottom: '20px', color: 'var(--success)' }}></i>
-              <p>جاري التوجيه إلى لوحة التحكم...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // التحقق من صحة البريد الإلكتروني
-  const validateEmail = (email) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
-  };
-
-  // التحقق من صحة كلمة المرور
-  const validatePassword = (password) => {
-    return password.length >= 6;
-  };
-
-  // معالجة تغيير الحقول
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prevState => ({
-      ...prevState,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-
-    // مسح الأخطاء عند الكتابة
-    if (apiError) setApiError('');
-
-    // التحقق في الوقت الحقيقي
-    if (name === 'email') {
-      setErrors(prevState => ({
-        ...prevState,
-        email: value !== '' && !validateEmail(value)
-      }));
-    } else if (name === 'password') {
-      setErrors(prevState => ({
-        ...prevState,
-        password: value !== '' && !validatePassword(value)
-      }));
+    
+    // Validate password
+    if (!password.trim()) {
+      setPasswordError('الرجاء إدخال كلمة المرور');
+      isValid = false;
+    } else if (password.trim().length < 6) {
+      setPasswordError('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+      isValid = false;
     }
+    
+    return isValid;
   };
 
-  // معالجة إرسال النموذج
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setApiError('');
     
-    const emailValid = validateEmail(formData.email);
-    const passwordValid = validatePassword(formData.password);
-    
-    // تحديث الأخطاء
-    setErrors({
-      email: !emailValid && formData.email !== '',
-      password: !passwordValid && formData.password !== ''
-    });
+    if (validateForm()) {
+      setIsLoading(true);
+      setApiMessage('');
+      
+      try {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/v1/admin/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email.trim(),
+            password: password
+          })
+        });
 
-    console.log('🔐 بدء عملية تسجيل الدخول مع API الحقيقي');
+        const data = await response.json();
 
-    // التحقق من الصحة
-    if (!emailValid || !passwordValid) {
-      console.log('❌ تحقق من صحة البيانات قبل الإرسال');
-      return;
-    }
-
-    setIsLoading(true);
-    
-    try {
-      console.log('🔄 جاري إرسال طلب تسجيل الدخول إلى API الحقيقي...');
-      
-      // استخدام API الحقيقي لتسجيل الدخول
-      await login({
-        email: formData.email,
-        password: formData.password
-      });
-      
-      console.log('✅ تسجيل الدخول ناجح عبر API الحقيقي');
-      setIsSuccess(true);
-      
-      // إعادة تعيين حالة التوجيه
-      redirectTriggered.current = false;
-      
-    } catch (error) {
-      // معالجة أخطاء API الحقيقي
-      let errorMessage = 'فشل تسجيل الدخول. يرجى التحقق من البيانات.';
-      
-      console.error('❌ خطأ في تسجيل الدخول من API:', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data
-      });
-      
-      if (error.response) {
-        // الخطأ من الخادم
-        const serverError = error.response.data;
-        errorMessage = serverError.message || errorMessage;
-        console.log('🚨 خطأ من الخادم:', serverError);
-      } else if (error.request) {
-        // لا يوجد اتصال بالخادم
-        errorMessage = 'لا يمكن الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت.';
-        console.log('🌐 خطأ اتصال: لا يمكن الوصول إلى الخادم');
-      } else {
-        // خطأ آخر
-        errorMessage = error.message || errorMessage;
-        console.log('⚡ خطأ غير متوقع:', error.message);
+        if (data.success) {
+          // حفظ التوكن في localStorage
+          localStorage.setItem('adminToken', data.data.token);
+          localStorage.setItem('adminData', JSON.stringify(data.data.admin));
+          
+          setApiMessage({
+            text: data.message,
+            type: 'success'
+          });
+          
+          // Reset form
+          setEmail('');
+          setPassword('');
+          setRemember(false);
+          
+          // يمكنك إضافة redirect هنا إذا أردت
+          // window.location.href = '/dashboard';
+          
+        } else {
+          setApiMessage({
+            text: data.message || 'فشل تسجيل الدخول. الرجاء المحاولة مرة أخرى.',
+            type: 'error'
+          });
+        }
+      } catch (error) {
+        setApiMessage({
+          text: 'حدث خطأ في الاتصال بالخادم. الرجاء المحاولة مرة أخرى.',
+          type: 'error'
+        });
+        console.error('Login error:', error);
+      } finally {
+        setIsLoading(false);
       }
-      
-      setApiError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // معالجة نسيان كلمة المرور
-  const handleForgotPassword = (e) => {
-    e.preventDefault();
-    console.log('🔑 طلب إعادة تعيين كلمة المرور');
-    
-    if (formData.email && validateEmail(formData.email)) {
-      alert(`سيتم إرسال تعليمات إعادة تعيين كلمة المرور إلى: ${formData.email}`);
-      console.log('📧 إرسال تعليمات إعادة تعيين إلى:', formData.email);
-    } else {
-      alert('الرجاء إدخال عنوان بريدك الإلكتروني أولاً');
     }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
-          <div className="logo-container">
-            <div className="logo">
-              <i className="fas fa-cube"></i>
+    <div className="login-body-log">
+      {/* Floating Background Elements */}
+      <div className="floating-elements-log">
+        <div className="floating-element-log element-1-log"></div>
+        <div className="floating-element-log element-2-log"></div>
+        <div className="floating-element-log element-3-log"></div>
+        <div className="floating-element-log element-4-log"></div>
+      </div>
+
+      {/* Login Container */}
+      <div className="login-container-log">
+        <div className="login-header-log">
+          <div className="logo-container-log">
+            <div className="logo-log">
+              <i className="fas fa-feather-alt"></i>
             </div>
-            <div className="brand">
-              <h1>نظام الإدارة</h1>
-              <p>Content Management System</p>
-            </div>
+            <div className="logo-ring-log"></div>
           </div>
         </div>
-        <div className="login-body">
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="email">البريد الإلكتروني</label>
-              <div className="input-with-icon">
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  className="form-control"
-                  placeholder="admin@example.com"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  disabled={isLoading}
-                />
-                <i className="fas fa-user"></i>
-              </div>
-              <div className={`error-message ${errors.email ? 'show' : ''}`}>
-                <i className="fas fa-exclamation-circle"></i> يرجى إدخال بريد إلكتروني صحيح
-              </div>
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="password">كلمة المرور</label>
-              <div className="input-with-icon">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  name="password"
-                  className="form-control"
-                  placeholder="أدخل كلمة المرور"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  required
-                  disabled={isLoading}
-                />
-                <i className="fas fa-lock"></i>
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
-                  disabled={isLoading}
-                >
-                  <i className={`fas fa-eye${showPassword ? '-slash' : ''}`}></i>
-                </button>
-              </div>
-              <div className={`error-message ${errors.password ? 'show' : ''}`}>
-                <i className="fas fa-exclamation-circle"></i> كلمة المرور يجب أن تكون 6 أحرف على الأقل
-              </div>
-            </div>
-            
-            <div className="form-options">
-              <div className="remember-me">
-                <input
-                  type="checkbox"
-                  id="rememberMe"
-                  name="rememberMe"
-                  checked={formData.rememberMe}
-                  onChange={handleInputChange}
-                  disabled={isLoading}
-                />
-                <label htmlFor="rememberMe">تذكر بيانات الدخول</label>
-              </div>
-              <a href="#" className="forgot-password" onClick={handleForgotPassword}>
-                نسيت كلمة المرور؟
-              </a>
-            </div>
 
-            {/* عرض خطأ API */}
-            {apiError && (
-              <div className="error-message show" style={{ marginBottom: '20px' }}>
-                <i className="fas fa-exclamation-triangle"></i> {apiError}
-              </div>
-            )}
-            
-            <button
-              type="submit"
-              className={`login-button ${isLoading ? 'loading' : ''} ${!isLoading && !isSuccess ? 'pulse' : ''}`}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <i className="fas fa-spinner"></i>
-                  <span>جاري تسجيل الدخول...</span>
-                </>
-              ) : isSuccess ? (
-                <>
-                  <i className="fas fa-check"></i>
-                  <span>تم تسجيل الدخول بنجاح</span>
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-sign-in-alt"></i>
-                  <span>تسجيل الدخول إلى لوحة التحكم</span>
-                </>
-              )}
-            </button>
-            
-            <div className={`success-message ${isSuccess ? 'show' : ''}`}>
-              <i className="fas fa-check-circle"></i> تم تسجيل الدخول بنجاح! جاري التوجيه...
-            </div>
+        {/* Display API Messages */}
+        {apiMessage && (
+          <div className={`api-message-log ${apiMessage.type === 'success' ? 'success-log' : 'error-log'}`}>
+            <i className={`fas ${apiMessage.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}`}></i>
+            {apiMessage.text}
+          </div>
+        )}
 
-            <div className="security-notice">
-              <i className="fas fa-shield-alt"></i>
-              <span>اتصال آمن مشفر. بياناتك محمية.</span>
+        <form id="loginForm-log" onSubmit={handleSubmit}>
+          <div className="form-group-log">
+            <label htmlFor="email-log">البريد الإلكتروني</label>
+            <div className="input-with-icon-log">
+              <input 
+                type="email" 
+                id="email-log" 
+                className={`form-control-log ${emailError ? 'error-shake-log' : ''}`}
+                placeholder="أدخل بريدك الإلكتروني"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+              />
+              <i className="fas fa-envelope"></i>
             </div>
-          </form>
+            {emailError && <div className="error-message-log">{emailError}</div>}
+          </div>
           
-          <div className="login-footer">
-            <p>© 2023 نظام إدارة المحتوى. جميع الحقوق محفوظة. الإصدار 4.2</p>
+          <div className="form-group-log">
+            <label htmlFor="password-log">كلمة المرور</label>
+            <div className="input-with-icon-log">
+              <input 
+                type="password" 
+                id="password-log" 
+                className={`form-control-log ${passwordError ? 'error-shake-log' : ''}`}
+                placeholder="أدخل كلمة المرور"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+              />
+              <i className="fas fa-lock"></i>
+            </div>
+            {passwordError && <div className="error-message-log">{passwordError}</div>}
           </div>
-        </div>
+          
+          <button type="submit" className="login-btn-log" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <i className="fas fa-spinner fa-spin"></i>
+                جاري تسجيل الدخول...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-sign-in-alt"></i>
+                تسجيل دخول
+              </>
+            )}
+          </button>
+        </form>
       </div>
     </div>
   );
