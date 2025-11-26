@@ -1,4 +1,11 @@
 /* CSS Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', 'Tajawal', sans-serif;
+}
+
 /* CSS Variables - Color System */
 :root {
   /* Primary Colors */
@@ -115,12 +122,6 @@
   --stats-bg: rgba(255, 255, 255, 0.7);
   --ring-color: rgba(74, 144, 226, 0.4);
 }
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Segoe UI', 'Tajawal', sans-serif;
-}
 
 /* Global Styles */
 .login-body-log {
@@ -134,6 +135,7 @@
   padding: 20px;
   position: relative;
   overflow: hidden;
+  direction: ltr;
 }
 
 /* Animated Background Elements */
@@ -277,6 +279,7 @@
 .form-group-log {
   margin-bottom: 28px;
   position: relative;
+  direction: ltr;
 }
 
 .form-group-log label {
@@ -450,6 +453,42 @@
   text-decoration: underline;
 }
 
+/* API Messages */
+.api-message-log {
+  padding: 12px 16px;
+  margin: 16px 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  animation: fadeInUp-log 0.5s ease;
+}
+
+.api-message-log.success-log {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.api-message-log.error-log {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* Ensure form controls are disabled properly when loading */
+.form-control-log:disabled {
+  background-color: #f8f9fa;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.login-btn-log:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 /* Responsive Design */
 @media (max-width: 520px) {
   .login-container-log {
@@ -513,36 +552,7 @@
   75% {transform: translateX(5px);}
 }
 
-.error-shake-log {
-  animation: shake-log 0.4s ease;
-  border-color: #e53e3e !important;
-}
-/* Add these styles to your existing Login.css */
-
-.api-message-log {
-  padding: 12px 16px;
-  margin: 16px 0;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 500;
-  animation: fadeInUp 0.5s ease;
-}
-
-.api-message-log.success-log {
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-}
-
-.api-message-log.error-log {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-}
-
-@keyframes fadeInUp {
+@keyframes fadeInUp-log {
   from {
     opacity: 0;
     transform: translateY(10px);
@@ -553,14 +563,7 @@
   }
 }
 
-/* Ensure form controls are disabled properly when loading */
-.form-control-log:disabled {
-  background-color: #f8f9fa;
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.login-btn-log:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+.error-shake-log {
+  animation: shake-log 0.4s ease;
+  border-color: #e53e3e !important;
 }

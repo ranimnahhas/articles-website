@@ -26,19 +26,19 @@ const Login = () => {
     
     // Validate email
     if (!email.trim()) {
-      setEmailError('الرجاء إدخال البريد الإلكتروني');
+      setEmailError('Please enter your email');
       isValid = false;
     } else if (!isValidEmail(email.trim())) {
-      setEmailError('البريد الإلكتروني غير صحيح');
+      setEmailError('Invalid email address');
       isValid = false;
     }
     
     // Validate password
     if (!password.trim()) {
-      setPasswordError('الرجاء إدخال كلمة المرور');
+      setPasswordError('Please enter your password');
       isValid = false;
     } else if (password.trim().length < 6) {
-      setPasswordError('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+      setPasswordError('Password must be at least 6 characters');
       isValid = false;
     }
     
@@ -68,7 +68,7 @@ const Login = () => {
         const data = await response.json();
 
         if (data.success) {
-          // حفظ التوكن في localStorage
+          // Save token in localStorage
           localStorage.setItem('adminToken', data.data.token);
           localStorage.setItem('adminData', JSON.stringify(data.data.admin));
           
@@ -82,18 +82,18 @@ const Login = () => {
           setPassword('');
           setRemember(false);
           
-          // يمكنك إضافة redirect هنا إذا أردت
+          // You can add redirect here if needed
           // window.location.href = '/dashboard';
           
         } else {
           setApiMessage({
-            text: data.message || 'فشل تسجيل الدخول. الرجاء المحاولة مرة أخرى.',
+            text: data.message || 'Login failed. Please try again.',
             type: 'error'
           });
         }
       } catch (error) {
         setApiMessage({
-          text: 'حدث خطأ في الاتصال بالخادم. الرجاء المحاولة مرة أخرى.',
+          text: 'Server connection error. Please try again.',
           type: 'error'
         });
         console.error('Login error:', error);
@@ -122,8 +122,11 @@ const Login = () => {
             </div>
             <div className="logo-ring-log"></div>
           </div>
+          <h1>Welcome Back</h1>
+          <p>Sign in to your account</p>
         </div>
 
+      
         {/* Display API Messages */}
         {apiMessage && (
           <div className={`api-message-log ${apiMessage.type === 'success' ? 'success-log' : 'error-log'}`}>
@@ -134,13 +137,13 @@ const Login = () => {
 
         <form id="loginForm-log" onSubmit={handleSubmit}>
           <div className="form-group-log">
-            <label htmlFor="email-log">البريد الإلكتروني</label>
+            <label htmlFor="email-log">Email Address</label>
             <div className="input-with-icon-log">
               <input 
                 type="email" 
                 id="email-log" 
                 className={`form-control-log ${emailError ? 'error-shake-log' : ''}`}
-                placeholder="أدخل بريدك الإلكتروني"
+                placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
@@ -151,13 +154,13 @@ const Login = () => {
           </div>
           
           <div className="form-group-log">
-            <label htmlFor="password-log">كلمة المرور</label>
+            <label htmlFor="password-log">Password</label>
             <div className="input-with-icon-log">
               <input 
                 type="password" 
                 id="password-log" 
                 className={`form-control-log ${passwordError ? 'error-shake-log' : ''}`}
-                placeholder="أدخل كلمة المرور"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
@@ -166,21 +169,24 @@ const Login = () => {
             </div>
             {passwordError && <div className="error-message-log">{passwordError}</div>}
           </div>
+        
           
           <button type="submit" className="login-btn-log" disabled={isLoading}>
             {isLoading ? (
               <>
                 <i className="fas fa-spinner fa-spin"></i>
-                جاري تسجيل الدخول...
+                Signing in...
               </>
             ) : (
               <>
                 <i className="fas fa-sign-in-alt"></i>
-                تسجيل دخول
+                Sign In
               </>
             )}
           </button>
         </form>
+
+      
       </div>
     </div>
   );
