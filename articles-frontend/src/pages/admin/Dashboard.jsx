@@ -1,356 +1,551 @@
-import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import './Dashboard.css';
+import React, { useState, useEffect } from 'react';
+import './dashboard.css';
 
 const Dashboard = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const [darkMode, setDarkMode] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarActive, setMobileSidebarActive] = useState(false);
   const [activeSection, setActiveSection] = useState('dashboard');
+  const [activeModal, setActiveModal] = useState(null);
 
-  const handleLogout = async () => {
-    console.log('🚪 بدء تسجيل الخروج...');
-    await logout();
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768) {
+        setMobileSidebarActive(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
   };
 
-  // إحصائيات
-  const stats = [
-    {
-      title: 'المقالات',
-      value: '24',
-      icon: 'fas fa-newspaper',
-      color: 'var(--primary)',
-      change: '+12%',
-      description: 'مقال نشط'
-    },
-    {
-      title: 'الأقسام',
-      value: '8',
-      icon: 'fas fa-folder',
-      color: 'var(--success)',
-      change: '+5%',
-      description: 'قسم رئيسي'
-    },
-    {
-      title: 'التعليقات',
-      value: '156',
-      icon: 'fas fa-comments',
-      color: 'var(--accent)',
-      change: '+23%',
-      description: 'في انتظار المراجعة'
-    },
-    {
-      title: 'الرسائل',
-      value: '12',
-      icon: 'fas fa-envelope',
-      color: 'var(--secondary)',
-      change: '+8%',
-      description: 'جديدة'
-    }
-  ];
+  // Toggle sidebar collapse
+  const toggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
 
-  // الإجراءات السريعة
-  const quickActions = [
-    {
-      title: 'مقال جديد',
-      icon: 'fas fa-plus',
-      description: 'إنشاء مقال جديد',
-      color: 'var(--primary)',
-      onClick: () => setActiveSection('articles')
-    },
-    {
-      title: 'قسم جديد',
-      icon: 'fas fa-folder-plus',
-      description: 'إضافة قسم جديد',
-      color: 'var(--success)',
-      onClick: () => setActiveSection('categories')
-    },
-    {
-      title: 'إدارة التعليقات',
-      icon: 'fas fa-comment-medical',
-      description: 'مراجعة التعليقات',
-      color: 'var(--accent)',
-      onClick: () => setActiveSection('comments')
-    },
-    {
-      title: 'الرسائل',
-      icon: 'fas fa-envelope-open',
-      description: 'عرض الرسائل الواردة',
-      color: 'var(--secondary)',
-      onClick: () => setActiveSection('messages')
-    }
-  ];
+  // Toggle mobile sidebar
+  const toggleMobileSidebar = () => {
+    setMobileSidebarActive(!mobileSidebarActive);
+  };
 
-  // النشاط الحديث
-  const recentActivities = [
-    {
-      action: 'إنشاء مقال',
-      title: '"أفضل ممارسات React"',
-      time: 'منذ 2 ساعة',
-      icon: 'fas fa-plus-circle',
-      color: 'var(--success)'
-    },
-    {
-      action: 'تعليق جديد',
-      title: 'على مقال "كيفية استخدام Laravel"',
-      time: 'منذ 4 ساعات',
-      icon: 'fas fa-comment',
-      color: 'var(--accent)'
-    },
-    {
-      action: 'مستخدم جديد',
-      title: 'تمت إضافة مستخدم جديد',
-      time: 'منذ 6 ساعات',
-      icon: 'fas fa-user-plus',
-      color: 'var(--primary)'
-    },
-    {
-      action: 'تحديث',
-      title: 'تم تحديث قسم "برمجة"',
-      time: 'منذ 8 ساعات',
-      icon: 'fas fa-sync',
-      color: 'var(--secondary)'
+  // Change active section
+  const changeSection = (section) => {
+    setActiveSection(section);
+    if (window.innerWidth <= 768) {
+      setMobileSidebarActive(false);
     }
-  ];
+  };
+
+  // Open modal
+  const openModal = (modalName) => {
+    setActiveModal(modalName);
+  };
+
+  // Close modal
+  const closeModal = () => {
+    setActiveModal(null);
+  };
+
+  // Handle table row click
+  const handleTableRowClick = (e) => {
+    if (!e.target.closest('.table-actions-dash')) {
+      e.currentTarget.classList.toggle('selected-dash');
+    }
+  };
 
   return (
-    <div className="admin-dashboard">
-      {/* Sidebar */}
-      <div className="dashboard-sidebar">
-        <div className="sidebar-header">
-          <div className="brand">
-            <div className="logo">
-              <i className="fas fa-cube"></i>
-            </div>
-            <h2>نظام الإدارة</h2>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-          <div className="nav-section">
-            <div className="nav-title">القائمة الرئيسية</div>
-            <ul>
-              <li className={activeSection === 'dashboard' ? 'active' : ''}>
-                <a onClick={() => setActiveSection('dashboard')}>
-                  <div className="nav-icon">
-                    <i className="fas fa-tachometer-alt"></i>
-                  </div>
-                  <span>لوحة التحكم</span>
-                </a>
-              </li>
-              <li className={activeSection === 'articles' ? 'active' : ''}>
-                <a onClick={() => setActiveSection('articles')}>
-                  <div className="nav-icon">
-                    <i className="fas fa-newspaper"></i>
-                  </div>
-                  <span>المقالات</span>
-                  <span className="nav-badge">24</span>
-                </a>
-              </li>
-              <li className={activeSection === 'categories' ? 'active' : ''}>
-                <a onClick={() => setActiveSection('categories')}>
-                  <div className="nav-icon">
-                    <i className="fas fa-folder"></i>
-                  </div>
-                  <span>الأقسام</span>
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <div className="nav-section">
-            <div className="nav-title">التفاعلات</div>
-            <ul>
-              <li className={activeSection === 'comments' ? 'active' : ''}>
-                <a onClick={() => setActiveSection('comments')}>
-                  <div className="nav-icon">
-                    <i className="fas fa-comments"></i>
-                  </div>
-                  <span>التعليقات</span>
-                  <span className="nav-badge">12</span>
-                </a>
-              </li>
-              <li className={activeSection === 'messages' ? 'active' : ''}>
-                <a onClick={() => setActiveSection('messages')}>
-                  <div className="nav-icon">
-                    <i className="fas fa-envelope"></i>
-                  </div>
-                  <span>الرسائل</span>
-                  <span className="nav-badge">5</span>
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <div className="nav-section">
-            <div className="nav-title">الإدارة</div>
-            <ul>
-              <li className={activeSection === 'users' ? 'active' : ''}>
-                <a onClick={() => setActiveSection('users')}>
-                  <div className="nav-icon">
-                    <i className="fas fa-users"></i>
-                  </div>
-                  <span>المستخدمين</span>
-                </a>
-              </li>
-              <li className={activeSection === 'settings' ? 'active' : ''}>
-                <a onClick={() => setActiveSection('settings')}>
-                  <div className="nav-icon">
-                    <i className="fas fa-cog"></i>
-                  </div>
-                  <span>الإعدادات</span>
-                </a>
-              </li>
-            </ul>
-          </div>
-        </nav>
-
-        <div className="sidebar-footer">
-          <div className="user-card">
-            <div className="user-avatar">
-              <i className="fas fa-user"></i>
-            </div>
-            <div className="user-info">
-              <div className="user-name">{user?.name}</div>
-              <div className="user-role">مدير النظام</div>
-            </div>
-            <button className="logout-btn" onClick={handleLogout}>
-              <i className="fas fa-sign-out-alt"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="dashboard-main">
+    <div className={`dashboard-container ${darkMode ? 'dark-mode-dash' : ''}`}>
+      <div className="dashboard-dash">
         {/* Header */}
-        <header className="main-header">
-          <div className="header-left">
-            <h1>لوحة التحكم</h1>
-            <p>مرحباً بعودتك، {user?.name}!
-</p>
+        <header className="header-dash">
+          <div className="d-flex-dash align-center-dash gap-1-dash">
+            <button className="mobile-menu-toggle-dash" onClick={toggleMobileSidebar}>
+              <i className="fas fa-bars"></i>
+            </button>
+            <div className="header-search-dash">
+              <i className="fas fa-search"></i>
+              <input type="text" placeholder="Search..." />
+            </div>
           </div>
-          <div className="header-right">
-            <div className="header-actions">
-              <button className="notification-btn">
-                <i className="fas fa-bell"></i>
-                <span className="notification-dot"></span>
-              </button>
-              <div className="search-box">
-                <i className="fas fa-search"></i>
-                <input type="text" placeholder="ابحث عن..." />
+          <div className="header-actions-dash">
+            <button className="header-action-btn-dash theme-toggle-dash" onClick={toggleDarkMode}>
+              <i className={darkMode ? "fas fa-sun" : "fas fa-moon"}></i>
+            </button>
+            <button className="header-action-btn-dash">
+              <i className="fas fa-bell"></i>
+              <span className="header-action-badge-dash">3</span>
+            </button>
+            <div className="header-user-dash">
+              <div className="header-user-avatar-dash">JD</div>
+              <div className="header-user-info-dash">
+                <div className="header-user-name-dash">John Doe</div>
+                <div className="header-user-role-dash text-muted-dash">Administrator</div>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Stats Grid */}
-        <div className="stats-grid">
-          {stats.map((stat, index) => (
-            <div key={index} className="stat-card">
-              <div className="stat-header">
-                <div className="stat-icon" style={{ backgroundColor: stat.color }}>
-                  <i className={stat.icon}></i>
-                </div>
-                <div className="stat-change" style={{ color: stat.color }}>
-                  {stat.change}
-                </div>
-              </div>
-              <div className="stat-content">
-                <h3>{stat.value}</h3>
-                <p>{stat.title}</p>
-                <span>{stat.description}</span>
-              </div>
+        {/* Sidebar */}
+        <aside className={`sidebar-dash ${sidebarCollapsed ? 'collapsed-dash' : ''} ${mobileSidebarActive ? 'active-dash mobile-expanded-dash' : ''}`}>
+          <div className="sidebar-logo-dash">
+            <div className="sidebar-logo-icon-dash">
+              <i className="fas fa-cube"></i>
             </div>
-          ))}
-        </div>
+            <div className="sidebar-logo-text-dash">CMS Admin</div>
+          </div>
+          <nav className="sidebar-menu-dash">
+            <a 
+              href="#" 
+              className={`sidebar-menu-item-dash ${activeSection === 'dashboard' ? 'active-dash' : ''}`}
+              onClick={(e) => { e.preventDefault(); changeSection('dashboard'); }}
+            >
+              <i className="fas fa-home sidebar-menu-icon-dash"></i>
+              <span className="sidebar-menu-text-dash">Dashboard</span>
+            </a>
+            <a 
+              href="#" 
+              className={`sidebar-menu-item-dash ${activeSection === 'articles' ? 'active-dash' : ''}`}
+              onClick={(e) => { e.preventDefault(); changeSection('articles'); }}
+            >
+              <i className="fas fa-newspaper sidebar-menu-icon-dash"></i>
+              <span className="sidebar-menu-text-dash">Articles</span>
+            </a>
+            <a 
+              href="#" 
+              className={`sidebar-menu-item-dash ${activeSection === 'categories' ? 'active-dash' : ''}`}
+              onClick={(e) => { e.preventDefault(); changeSection('categories'); }}
+            >
+              <i className="fas fa-folder sidebar-menu-icon-dash"></i>
+              <span className="sidebar-menu-text-dash">Categories</span>
+            </a>
+            <a 
+              href="#" 
+              className={`sidebar-menu-item-dash ${activeSection === 'comments' ? 'active-dash' : ''}`}
+              onClick={(e) => { e.preventDefault(); changeSection('comments'); }}
+            >
+              <i className="fas fa-comments sidebar-menu-icon-dash"></i>
+              <span className="sidebar-menu-text-dash">Comments</span>
+            </a>
+            <a 
+              href="#" 
+              className={`sidebar-menu-item-dash ${activeSection === 'messages' ? 'active-dash' : ''}`}
+              onClick={(e) => { e.preventDefault(); changeSection('messages'); }}
+            >
+              <i className="fas fa-envelope sidebar-menu-icon-dash"></i>
+              <span className="sidebar-menu-text-dash">Messages</span>
+            </a>
+            <a 
+              href="#" 
+              className={`sidebar-menu-item-dash ${activeSection === 'users' ? 'active-dash' : ''}`}
+              onClick={(e) => { e.preventDefault(); changeSection('users'); }}
+            >
+              <i className="fas fa-users sidebar-menu-icon-dash"></i>
+              <span className="sidebar-menu-text-dash">Users</span>
+            </a>
+            <a 
+              href="#" 
+              className={`sidebar-menu-item-dash ${activeSection === 'settings' ? 'active-dash' : ''}`}
+              onClick={(e) => { e.preventDefault(); changeSection('settings'); }}
+            >
+              <i className="fas fa-cog sidebar-menu-icon-dash"></i>
+              <span className="sidebar-menu-text-dash">Settings</span>
+            </a>
+          </nav>
+          <div className="sidebar-footer-dash">
+            <div className="sidebar-toggle-dash" onClick={toggleSidebar}>
+              <i className={sidebarCollapsed ? "fas fa-chevron-right" : "fas fa-chevron-left"}></i>
+            </div>
+          </div>
+        </aside>
 
-        {/* Quick Actions & Recent Activity */}
-        <div className="content-grid">
-          {/* Quick Actions */}
-          <div className="quick-actions-section">
-            <div className="section-header">
-              <h3>الإجراءات السريعة</h3>
-              <p>الوصول السريع للمهام الشائعة</p>
-            </div>
-            <div className="actions-grid">
-              {quickActions.map((action, index) => (
-                <button
-                  key={index}
-                  className="action-card"
-                  onClick={action.onClick}
-                  style={{ '--action-color': action.color }}
-                >
-                  <div className="action-icon">
-                    <i className={action.icon}></i>
-                  </div>
-                  <div className="action-content">
-                    <h4>{action.title}</h4>
-                    <p>{action.description}</p>
-                  </div>
-                  <div className="action-arrow">
-                    <i className="fas fa-arrow-left"></i>
-                  </div>
+        {/* Main Content */}
+        <main className="main-dash">
+          {/* Dashboard Section */}
+          <section className={`section-dash ${activeSection === 'dashboard' ? 'active-dash' : ''}`} id="dashboard">
+            <div className="section-header-dash">
+              <h1 className="section-title-dash">Dashboard</h1>
+              <div className="d-flex-dash gap-1-dash">
+                <button className="btn-dash btn-outline-dash">
+                  <i className="fas fa-download"></i> Export Report
                 </button>
-              ))}
+                <button className="btn-dash btn-primary-dash">
+                  <i className="fas fa-plus"></i> Add Content
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* Recent Activity */}
-          <div className="recent-activity-section">
-            <div className="section-header">
-              <h3>النشاط الحديث</h3>
-              <p>آخر التحديثات في النظام</p>
-            </div>
-            <div className="activity-list">
-              {recentActivities.map((activity, index) => (
-                <div key={index} className="activity-item">
-                  <div className="activity-icon" style={{ color: activity.color }}>
-                    <i className={activity.icon}></i>
-                  </div>
-                  <div className="activity-content">
-                    <div className="activity-header">
-                      <span className="activity-action">{activity.action}</span>
-                      <span className="activity-time">{activity.time}</span>
-                    </div>
-                    <p className="activity-title">{activity.title}</p>
+            {/* Stats Cards */}
+            <div className="stats-dash">
+              <div className="stat-card-dash">
+                <div className="stat-card-header-dash">
+                  <div className="stat-card-title-dash">Total Articles</div>
+                  <div className="stat-card-icon-dash stat-card-icon-blue-dash">
+                    <i className="fas fa-newspaper"></i>
                   </div>
                 </div>
-              ))}
+                <div className="stat-card-value-dash">142</div>
+                <div className="stat-card-change-dash stat-card-change-positive-dash">
+                  <i className="fas fa-arrow-up"></i> 12% from last month
+                </div>
+              </div>
+              <div className="stat-card-dash">
+                <div className="stat-card-header-dash">
+                  <div className="stat-card-title-dash">Published</div>
+                  <div className="stat-card-icon-dash stat-card-icon-green-dash">
+                    <i className="fas fa-check-circle"></i>
+                  </div>
+                </div>
+                <div className="stat-card-value-dash">118</div>
+                <div className="stat-card-change-dash stat-card-change-positive-dash">
+                  <i className="fas fa-arrow-up"></i> 8% from last month
+                </div>
+              </div>
+              <div className="stat-card-dash">
+                <div className="stat-card-header-dash">
+                  <div className="stat-card-title-dash">Pending Comments</div>
+                  <div className="stat-card-icon-dash stat-card-icon-orange-dash">
+                    <i className="fas fa-comments"></i>
+                  </div>
+                </div>
+                <div className="stat-card-value-dash">24</div>
+                <div className="stat-card-change-dash stat-card-change-negative-dash">
+                  <i className="fas fa-arrow-down"></i> 5% from last month
+                </div>
+              </div>
+              <div className="stat-card-dash">
+                <div className="stat-card-header-dash">
+                  <div className="stat-card-title-dash">New Messages</div>
+                  <div className="stat-card-icon-dash stat-card-icon-red-dash">
+                    <i className="fas fa-envelope"></i>
+                  </div>
+                </div>
+                <div className="stat-card-value-dash">16</div>
+                <div className="stat-card-change-dash stat-card-change-positive-dash">
+                  <i className="fas fa-arrow-up"></i> 3% from last month
+                </div>
+              </div>
             </div>
+
+            {/* Recent Articles Table */}
+            <div className="table-container-dash">
+              <div className="table-controls-dash">
+                <div className="table-controls-left-dash">
+                  <h3>Recent Articles</h3>
+                </div>
+                <div className="table-controls-right-dash">
+                  <select className="select-dash">
+                    <option>All Categories</option>
+                    <option>Technology</option>
+                    <option>Business</option>
+                    <option>Health</option>
+                  </select>
+                  <button className="btn-dash btn-outline-dash">
+                    <i className="fas fa-filter"></i> Filter
+                  </button>
+                </div>
+              </div>
+              <table className="table-dash">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Author</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr onClick={handleTableRowClick}>
+                    <td>#142</td>
+                    <td>The Future of Artificial Intelligence</td>
+                    <td>Technology</td>
+                    <td><span className="badge-dash badge-published-dash">Published</span></td>
+                    <td>John Doe</td>
+                    <td>May 15, 2023</td>
+                    <td>
+                      <div className="table-actions-dash">
+                        <button className="table-action-dash table-action-view-dash">
+                          <i className="fas fa-eye"></i>
+                        </button>
+                        <button className="table-action-dash table-action-edit-dash">
+                          <i className="fas fa-edit"></i>
+                        </button>
+                        <button className="table-action-dash table-action-delete-dash">
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr onClick={handleTableRowClick}>
+                    <td>#141</td>
+                    <td>Sustainable Business Practices</td>
+                    <td>Business</td>
+                    <td><span className="badge-dash badge-published-dash">Published</span></td>
+                    <td>Jane Smith</td>
+                    <td>May 12, 2023</td>
+                    <td>
+                      <div className="table-actions-dash">
+                        <button className="table-action-dash table-action-view-dash">
+                          <i className="fas fa-eye"></i>
+                        </button>
+                        <button className="table-action-dash table-action-edit-dash">
+                          <i className="fas fa-edit"></i>
+                        </button>
+                        <button className="table-action-dash table-action-delete-dash">
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr onClick={handleTableRowClick}>
+                    <td>#140</td>
+                    <td>Mental Health in the Workplace</td>
+                    <td>Health</td>
+                    <td><span className="badge-dash badge-draft-dash">Draft</span></td>
+                    <td>Robert Johnson</td>
+                    <td>May 10, 2023</td>
+                    <td>
+                      <div className="table-actions-dash">
+                        <button className="table-action-dash table-action-view-dash">
+                          <i className="fas fa-eye"></i>
+                        </button>
+                        <button className="table-action-dash table-action-edit-dash">
+                          <i className="fas fa-edit"></i>
+                        </button>
+                        <button className="table-action-dash table-action-delete-dash">
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr onClick={handleTableRowClick}>
+                    <td>#139</td>
+                    <td>Web Development Trends 2023</td>
+                    <td>Technology</td>
+                    <td><span className="badge-dash badge-published-dash">Published</span></td>
+                    <td>Sarah Williams</td>
+                    <td>May 8, 2023</td>
+                    <td>
+                      <div className="table-actions-dash">
+                        <button className="table-action-dash table-action-view-dash">
+                          <i className="fas fa-eye"></i>
+                        </button>
+                        <button className="table-action-dash table-action-edit-dash">
+                          <i className="fas fa-edit"></i>
+                        </button>
+                        <button className="table-action-dash table-action-delete-dash">
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr onClick={handleTableRowClick}>
+                    <td>#138</td>
+                    <td>Remote Work Best Practices</td>
+                    <td>Business</td>
+                    <td><span className="badge-dash badge-draft-dash">Draft</span></td>
+                    <td>Michael Brown</td>
+                    <td>May 5, 2023</td>
+                    <td>
+                      <div className="table-actions-dash">
+                        <button className="table-action-dash table-action-view-dash">
+                          <i className="fas fa-eye"></i>
+                        </button>
+                        <button className="table-action-dash table-action-edit-dash">
+                          <i className="fas fa-edit"></i>
+                        </button>
+                        <button className="table-action-dash table-action-delete-dash">
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div className="pagination-dash">
+                <button className="pagination-item-dash">
+                  <i className="fas fa-chevron-left"></i>
+                </button>
+                <button className="pagination-item-dash active-dash">1</button>
+                <button className="pagination-item-dash">2</button>
+                <button className="pagination-item-dash">3</button>
+                <button className="pagination-item-dash">4</button>
+                <button className="pagination-item-dash">5</button>
+                <button className="pagination-item-dash">
+                  <i className="fas fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* Articles Section */}
+          <section className={`section-dash ${activeSection === 'articles' ? 'active-dash' : ''}`} id="articles">
+            <div className="section-header-dash">
+              <h1 className="section-title-dash">Articles Management</h1>
+              <button className="btn-dash btn-primary-dash" onClick={() => openModal('addArticle')}>
+                <i className="fas fa-plus"></i> Add New Article
+              </button>
+            </div>
+            <div className="text-center-dash mt-2-dash">
+              <p className="text-muted-dash">Articles management section - content would be loaded here</p>
+            </div>
+          </section>
+
+          {/* Categories Section */}
+          <section className={`section-dash ${activeSection === 'categories' ? 'active-dash' : ''}`} id="categories">
+            <div className="section-header-dash">
+              <h1 className="section-title-dash">Categories Management</h1>
+              <button className="btn-dash btn-primary-dash" onClick={() => openModal('addCategory')}>
+                <i className="fas fa-plus"></i> Add New Category
+              </button>
+            </div>
+            <div className="text-center-dash mt-2-dash">
+              <p className="text-muted-dash">Categories management section - content would be loaded here</p>
+            </div>
+          </section>
+
+          {/* Comments Section */}
+          <section className={`section-dash ${activeSection === 'comments' ? 'active-dash' : ''}`} id="comments">
+            <div className="section-header-dash">
+              <h1 className="section-title-dash">Comments Management</h1>
+              <button className="btn-dash btn-primary-dash">
+                <i className="fas fa-cog"></i> Moderation Settings
+              </button>
+            </div>
+            <div className="text-center-dash mt-2-dash">
+              <p className="text-muted-dash">Comments management section - content would be loaded here</p>
+            </div>
+          </section>
+
+          {/* Messages Section */}
+          <section className={`section-dash ${activeSection === 'messages' ? 'active-dash' : ''}`} id="messages">
+            <div className="section-header-dash">
+              <h1 className="section-title-dash">Contact Messages</h1>
+              <button className="btn-dash btn-outline-dash">
+                <i className="fas fa-download"></i> Export Messages
+              </button>
+            </div>
+            <div className="text-center-dash mt-2-dash">
+              <p className="text-muted-dash">Messages management section - content would be loaded here</p>
+            </div>
+          </section>
+
+          {/* Users Section */}
+          <section className={`section-dash ${activeSection === 'users' ? 'active-dash' : ''}`} id="users">
+            <div className="section-header-dash">
+              <h1 className="section-title-dash">User Management</h1>
+              <button className="btn-dash btn-primary-dash">
+                <i className="fas fa-plus"></i> Add New User
+              </button>
+            </div>
+            <div className="text-center-dash mt-2-dash">
+              <p className="text-muted-dash">User management section - content would be loaded here</p>
+            </div>
+          </section>
+
+          {/* Settings Section */}
+          <section className={`section-dash ${activeSection === 'settings' ? 'active-dash' : ''}`} id="settings">
+            <div className="section-header-dash">
+              <h1 className="section-title-dash">Settings</h1>
+            </div>
+            <div className="text-center-dash mt-2-dash">
+              <p className="text-muted-dash">Settings section - content would be loaded here</p>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      {/* Add Article Modal */}
+      <div className={`modal-dash ${activeModal === 'addArticle' ? 'active-dash' : ''}`} id="addArticleModal">
+        <div className="modal-content-dash" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header-dash">
+            <h2 className="modal-title-dash">Add New Article</h2>
+            <button className="modal-close-dash" onClick={closeModal}>
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+          <div className="modal-body-dash">
+            <form id="articleForm">
+              <div className="form-group-dash">
+                <label className="form-label-dash" htmlFor="articleTitle">Title</label>
+                <input type="text" className="form-control-dash" id="articleTitle" placeholder="Enter article title" />
+              </div>
+              <div className="form-group-dash">
+                <label className="form-label-dash" htmlFor="articleCategory">Category</label>
+                <select className="form-control-dash" id="articleCategory">
+                  <option value="">Select a category</option>
+                  <option value="technology">Technology</option>
+                  <option value="business">Business</option>
+                  <option value="health">Health</option>
+                  <option value="lifestyle">Lifestyle</option>
+                </select>
+              </div>
+              <div className="form-group-dash">
+                <label className="form-label-dash" htmlFor="articleContent">Content</label>
+                <textarea className="form-control-dash" id="articleContent" placeholder="Enter article content"></textarea>
+              </div>
+              <div className="form-group-dash">
+                <label className="form-label-dash" htmlFor="articleStatus">Status</label>
+                <select className="form-control-dash" id="articleStatus">
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                </select>
+              </div>
+            </form>
+          </div>
+          <div className="modal-footer-dash">
+            <button className="btn-dash btn-outline-dash" onClick={closeModal}>Cancel</button>
+            <button className="btn-dash btn-primary-dash">Save Article</button>
           </div>
         </div>
+      </div>
 
-        {/* Charts Section */}
-        <div className="charts-section">
-          <div className="chart-card">
-            <div className="chart-header">
-              <h4>إحصائيات المقالات</h4>
-              <select className="chart-filter">
-                <option>آخر 7 أيام</option>
-                <option>آخر 30 يوم</option>
-                <option>آخر 90 يوم</option>
-              </select>
-            </div>
-            <div className="chart-placeholder">
-              <i className="fas fa-chart-bar"></i>
-              <p>رسم بياني لإحصائيات المقالات</p>
-            </div>
+      {/* Add Category Modal */}
+      <div className={`modal-dash ${activeModal === 'addCategory' ? 'active-dash' : ''}`} id="addCategoryModal">
+        <div className="modal-content-dash" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header-dash">
+            <h2 className="modal-title-dash">Add New Category</h2>
+            <button className="modal-close-dash" onClick={closeModal}>
+              <i className="fas fa-times"></i>
+            </button>
           </div>
-
-          <div className="chart-card">
-            <div className="chart-header">
-              <h4>تفاعل المستخدمين</h4>
-              <select className="chart-filter">
-                <option>آخر 7 أيام</option>
-                <option>آخر 30 يوم</option>
-                <option>آخر 90 يوم</option>
-              </select>
-            </div>
-            <div className="chart-placeholder">
-              <i className="fas fa-chart-line"></i>
-              <p>رسم بياني لتفاعل المستخدمين</p>
-            </div>
+          <div className="modal-body-dash">
+            <form id="categoryForm">
+              <div className="form-group-dash">
+                <label className="form-label-dash" htmlFor="categoryName">Name</label>
+                <input type="text" className="form-control-dash" id="categoryName" placeholder="Enter category name" />
+              </div>
+              <div className="form-group-dash">
+                <label className="form-label-dash" htmlFor="categoryDescription">Description</label>
+                <textarea className="form-control-dash" id="categoryDescription" placeholder="Enter category description"></textarea>
+              </div>
+              <div className="form-group-dash">
+                <label className="form-label-dash" htmlFor="categoryParent">Parent Category</label>
+                <select className="form-control-dash" id="categoryParent">
+                  <option value="">None (Top Level)</option>
+                  <option value="technology">Technology</option>
+                  <option value="business">Business</option>
+                  <option value="health">Health</option>
+                </select>
+              </div>
+              <div className="form-group-dash">
+                <label className="form-label-dash" htmlFor="categoryColor">Color</label>
+                <input type="color" className="form-control-dash" id="categoryColor" defaultValue="#4361ee" />
+              </div>
+            </form>
+          </div>
+          <div className="modal-footer-dash">
+            <button className="btn-dash btn-outline-dash" onClick={closeModal}>Cancel</button>
+            <button className="btn-dash btn-primary-dash">Save Category</button>
           </div>
         </div>
       </div>
