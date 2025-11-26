@@ -300,12 +300,13 @@
 }
 
 .btn-primary-dash {
-  background: var(--primary-dash);
-  color: white;
+ 
+  color: var(--primary-dash) !important;
 }
 
 .btn-primary-dash:hover {
-  background: var(--primary-dark-dash);
+  background: var(--primary-dark-dash) !important;
+  color: white !important;
 }
 
 .btn-outline-dash {

@@ -43,3 +43,6 @@ Route::prefix('v1')->group(function () {
     Route::get('/public/articles', [ArticleController::class, 'publicIndex']);
     Route::get('/public/articles/{article}', [ArticleController::class, 'publicShow']);
 });
+Route::get('/login', function () {
+    return response()->json(['message' => 'Unauthenticated'], 401);
+})->name('login');

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Login.css';
 import API_CONFIG from '../../../config';
 
@@ -11,6 +12,8 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [apiMessage, setApiMessage] = useState('');
 
+  const navigate = useNavigate();
+
   const isValidEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -19,12 +22,10 @@ const Login = () => {
   const validateForm = () => {
     let isValid = true;
     
-    // Reset error messages
     setEmailError('');
     setPasswordError('');
     setApiMessage('');
     
-    // Validate email
     if (!email.trim()) {
       setEmailError('Please enter your email');
       isValid = false;
@@ -33,7 +34,6 @@ const Login = () => {
       isValid = false;
     }
     
-    // Validate password
     if (!password.trim()) {
       setPasswordError('Please enter your password');
       isValid = false;
@@ -68,7 +68,6 @@ const Login = () => {
         const data = await response.json();
 
         if (data.success) {
-          // Save token in localStorage
           localStorage.setItem('adminToken', data.data.token);
           localStorage.setItem('adminData', JSON.stringify(data.data.admin));
           
@@ -77,13 +76,11 @@ const Login = () => {
             type: 'success'
           });
           
-          // Reset form
           setEmail('');
           setPassword('');
           setRemember(false);
           
-          // You can add redirect here if needed
-          // window.location.href = '/dashboard';
+          navigate('/dashboard');
           
         } else {
           setApiMessage({
@@ -105,7 +102,6 @@ const Login = () => {
 
   return (
     <div className="login-body-log">
-      {/* Floating Background Elements */}
       <div className="floating-elements-log">
         <div className="floating-element-log element-1-log"></div>
         <div className="floating-element-log element-2-log"></div>
@@ -113,7 +109,6 @@ const Login = () => {
         <div className="floating-element-log element-4-log"></div>
       </div>
 
-      {/* Login Container */}
       <div className="login-container-log">
         <div className="login-header-log">
           <div className="logo-container-log">
@@ -126,8 +121,6 @@ const Login = () => {
           <p>Sign in to your account</p>
         </div>
 
-      
-        {/* Display API Messages */}
         {apiMessage && (
           <div className={`api-message-log ${apiMessage.type === 'success' ? 'success-log' : 'error-log'}`}>
             <i className={`fas ${apiMessage.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}`}></i>
@@ -170,7 +163,6 @@ const Login = () => {
             {passwordError && <div className="error-message-log">{passwordError}</div>}
           </div>
         
-          
           <button type="submit" className="login-btn-log" disabled={isLoading}>
             {isLoading ? (
               <>
@@ -185,8 +177,6 @@ const Login = () => {
             )}
           </button>
         </form>
-
-      
       </div>
     </div>
   );

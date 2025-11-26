@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './dashboard.css';
+import './Dashboard.css';
 
 const Dashboard = () => {
   const [darkMode, setDarkMode] = useState(false);
@@ -447,8 +447,145 @@ const Dashboard = () => {
                 <i className="fas fa-plus"></i> Add New User
               </button>
             </div>
-            <div className="text-center-dash mt-2-dash">
-              <p className="text-muted-dash">User management section - content would be loaded here</p>
+            
+            {/* Users Table */}
+            <div className="table-container-dash">
+              <div className="table-controls-dash">
+                <div className="table-controls-left-dash">
+                  <h3>All Users</h3>
+                </div>
+                <div className="table-controls-right-dash">
+                  <select className="select-dash">
+                    <option>All Users</option>
+                    <option>Active</option>
+                    <option>Inactive</option>
+                  </select>
+                  <button className="btn-dash btn-outline-dash">
+                    <i className="fas fa-filter"></i> Filter
+                  </button>
+                </div>
+              </div>
+              <table className="table-dash">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr onClick={handleTableRowClick}>
+                    <td>#001</td>
+                    <td>John Doe</td>
+                    <td>john.doe@example.com</td>
+                    <td><span className="badge-dash badge-published-dash">Active</span></td>
+                    <td>
+                      <div className="table-actions-dash">
+                        <button className="table-action-dash table-action-view-dash">
+                          <i className="fas fa-eye"></i>
+                        </button>
+                        <button className="table-action-dash table-action-edit-dash">
+                          <i className="fas fa-edit"></i>
+                        </button>
+                        <button className="table-action-dash table-action-delete-dash">
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr onClick={handleTableRowClick}>
+                    <td>#002</td>
+                    <td>Jane Smith</td>
+                    <td>jane.smith@example.com</td>
+                    <td><span className="badge-dash badge-published-dash">Active</span></td>
+                    <td>
+                      <div className="table-actions-dash">
+                        <button className="table-action-dash table-action-view-dash">
+                          <i className="fas fa-eye"></i>
+                        </button>
+                        <button className="table-action-dash table-action-edit-dash">
+                          <i className="fas fa-edit"></i>
+                        </button>
+                        <button className="table-action-dash table-action-delete-dash">
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr onClick={handleTableRowClick}>
+                    <td>#003</td>
+                    <td>Robert Johnson</td>
+                    <td>robert.johnson@example.com</td>
+                    <td><span className="badge-dash badge-draft-dash">Inactive</span></td>
+                    <td>
+                      <div className="table-actions-dash">
+                        <button className="table-action-dash table-action-view-dash">
+                          <i className="fas fa-eye"></i>
+                        </button>
+                        <button className="table-action-dash table-action-edit-dash">
+                          <i className="fas fa-edit"></i>
+                        </button>
+                        <button className="table-action-dash table-action-delete-dash">
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr onClick={handleTableRowClick}>
+                    <td>#004</td>
+                    <td>Sarah Williams</td>
+                    <td>sarah.williams@example.com</td>
+                    <td><span className="badge-dash badge-published-dash">Active</span></td>
+                    <td>
+                      <div className="table-actions-dash">
+                        <button className="table-action-dash table-action-view-dash">
+                          <i className="fas fa-eye"></i>
+                        </button>
+                        <button className="table-action-dash table-action-edit-dash">
+                          <i className="fas fa-edit"></i>
+                        </button>
+                        <button className="table-action-dash table-action-delete-dash">
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr onClick={handleTableRowClick}>
+                    <td>#005</td>
+                    <td>Michael Brown</td>
+                    <td>michael.brown@example.com</td>
+                    <td><span className="badge-dash badge-published-dash">Active</span></td>
+                    <td>
+                      <div className="table-actions-dash">
+                        <button className="table-action-dash table-action-view-dash">
+                          <i className="fas fa-eye"></i>
+                        </button>
+                        <button className="table-action-dash table-action-edit-dash">
+                          <i className="fas fa-edit"></i>
+                        </button>
+                        <button className="table-action-dash table-action-delete-dash">
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div className="pagination-dash">
+                <button className="pagination-item-dash">
+                  <i className="fas fa-chevron-left"></i>
+                </button>
+                <button className="pagination-item-dash active-dash">1</button>
+                <button className="pagination-item-dash">2</button>
+                <button className="pagination-item-dash">3</button>
+                <button className="pagination-item-dash">4</button>
+                <button className="pagination-item-dash">5</button>
+                <button className="pagination-item-dash">
+                  <i className="fas fa-chevron-right"></i>
+                </button>
+              </div>
             </div>
           </section>
 
