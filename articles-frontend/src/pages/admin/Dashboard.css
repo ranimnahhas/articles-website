@@ -434,7 +434,8 @@
 }
 
 .table-dash {
-  width: 100%;
+  width: 96.75%;
+  margin: 0 1rem;
   border-collapse: collapse;
 }
 

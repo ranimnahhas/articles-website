@@ -468,19 +468,15 @@ const Dashboard = () => {
               <table className="table-dash">
                 <thead>
                   <tr>
-                    <th>ID</th>
                     <th>Name</th>
                     <th>Email</th>
-                    <th>Status</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr onClick={handleTableRowClick}>
-                    <td>#001</td>
                     <td>John Doe</td>
                     <td>john.doe@example.com</td>
-                    <td><span className="badge-dash badge-published-dash">Active</span></td>
                     <td>
                       <div className="table-actions-dash">
                         <button className="table-action-dash table-action-view-dash">
@@ -496,10 +492,8 @@ const Dashboard = () => {
                     </td>
                   </tr>
                   <tr onClick={handleTableRowClick}>
-                    <td>#002</td>
                     <td>Jane Smith</td>
                     <td>jane.smith@example.com</td>
-                    <td><span className="badge-dash badge-published-dash">Active</span></td>
                     <td>
                       <div className="table-actions-dash">
                         <button className="table-action-dash table-action-view-dash">
@@ -515,10 +509,8 @@ const Dashboard = () => {
                     </td>
                   </tr>
                   <tr onClick={handleTableRowClick}>
-                    <td>#003</td>
                     <td>Robert Johnson</td>
                     <td>robert.johnson@example.com</td>
-                    <td><span className="badge-dash badge-draft-dash">Inactive</span></td>
                     <td>
                       <div className="table-actions-dash">
                         <button className="table-action-dash table-action-view-dash">
@@ -534,10 +526,8 @@ const Dashboard = () => {
                     </td>
                   </tr>
                   <tr onClick={handleTableRowClick}>
-                    <td>#004</td>
                     <td>Sarah Williams</td>
                     <td>sarah.williams@example.com</td>
-                    <td><span className="badge-dash badge-published-dash">Active</span></td>
                     <td>
                       <div className="table-actions-dash">
                         <button className="table-action-dash table-action-view-dash">
@@ -553,10 +543,8 @@ const Dashboard = () => {
                     </td>
                   </tr>
                   <tr onClick={handleTableRowClick}>
-                    <td>#005</td>
                     <td>Michael Brown</td>
                     <td>michael.brown@example.com</td>
-                    <td><span className="badge-dash badge-published-dash">Active</span></td>
                     <td>
                       <div className="table-actions-dash">
                         <button className="table-action-dash table-action-view-dash">
