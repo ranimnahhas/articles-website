@@ -951,3 +951,6 @@ textarea.form-control-dash {
     display: block;
   }
 }
+.loading-dash{
+  margin-left: 1rem;
+}

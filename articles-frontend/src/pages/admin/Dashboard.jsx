@@ -6,9 +6,8 @@ const Dashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarActive, setMobileSidebarActive] = useState(false);
   const [activeSection, setActiveSection] = useState('dashboard');
-  const [activeModal, setActiveModal] = useState(null);
   
-  // States للإدارة
+  // States for Users Management
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -22,8 +21,9 @@ const Dashboard = () => {
     password_confirmation: ''
   });
   const [formErrors, setFormErrors] = useState({});
+  const [actionLoading, setActionLoading] = useState(false);
 
-  // States للمقالات
+  // States for Articles
   const [articles, setArticles] = useState([]);
   const [articlesLoading, setArticlesLoading] = useState(false);
   const [articlesError, setArticlesError] = useState(null);
@@ -48,13 +48,14 @@ const Dashboard = () => {
   });
   const [articleFormErrors, setArticleFormErrors] = useState({});
   const [articleImage, setArticleImage] = useState(null);
+  const [articleActionLoading, setArticleActionLoading] = useState(false);
 
-  // دالة مساعدة للحصول على التوكن
+  // Helper function to get auth token
   const getAuthToken = () => {
     return localStorage.getItem('admin_token') || localStorage.getItem('adminToken');
   };
 
-  // دالة لمعالجة ردود الخادم
+  // Handle server responses
   const handleResponse = async (response) => {
     const contentType = response.headers.get('content-type');
     
@@ -66,7 +67,7 @@ const Dashboard = () => {
     }
   };
 
-  // دالة لجلب بيانات الإدمن
+  // Fetch admins data
   const fetchAdmins = async () => {
     try {
       setLoading(true);
@@ -74,7 +75,7 @@ const Dashboard = () => {
       const token = getAuthToken();
       
       if (!token) {
-        throw new Error('لم يتم العثور على رمز المصادقة');
+        throw new Error('Authentication token not found');
       }
 
       const response = await fetch('http://localhost:8000/api/v1/admins', {
@@ -87,7 +88,7 @@ const Dashboard = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`فشل في جلب البيانات: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
       }
 
       const result = await handleResponse(response);
@@ -95,7 +96,7 @@ const Dashboard = () => {
       if (result.success) {
         setAdmins(result.data);
       } else {
-        setError(result.message || 'حدث خطأ غير معروف');
+        setError(result.message || 'Unknown error occurred');
       }
     } catch (err) {
       setError(err.message);
@@ -105,16 +106,17 @@ const Dashboard = () => {
     }
   };
 
-  // دالة لحذف إدمن
+  // Delete admin
   const handleDeleteAdmin = async (adminId, adminName) => {
-    if (!window.confirm(`هل أنت متأكد من حذف ${adminName}؟`)) {
+    if (!window.confirm(`Are you sure you want to delete ${adminName}?`)) {
       return;
     }
 
     try {
+      setActionLoading(true);
       const token = getAuthToken();
       if (!token) {
-        alert('لم يتم العثور على رمز المصادقة');
+        alert('Authentication token not found');
         return;
       }
 
@@ -130,30 +132,33 @@ const Dashboard = () => {
       const result = await handleResponse(response);
 
       if (result.success) {
-        alert('تم حذف الإدمن بنجاح');
+        alert('Admin deleted successfully');
         fetchAdmins();
       } else {
-        alert(result.message || 'حدث خطأ أثناء الحذف');
+        alert(result.message || 'Error occurred during deletion');
       }
     } catch (err) {
-      alert('حدث خطأ أثناء الحذف: ' + err.message);
+      alert('Error occurred during deletion: ' + err.message);
       console.error('Error deleting admin:', err);
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  // دالة لعرض تفاصيل الإدمن
+  // View admin details
   const handleViewAdmin = (admin) => {
-    alert(`تفاصيل الإدمن:\nالاسم: ${admin.name}\nالبريد: ${admin.email}\nتاريخ الإنشاء: ${new Date(admin.created_at).toLocaleDateString('ar-SA')}`);
+    alert(`Admin Details:\nName: ${admin.name}\nEmail: ${admin.email}\nCreated At: ${new Date(admin.created_at).toLocaleDateString('en-US')}`);
   };
 
-  // دالة لإضافة إدمن جديد
+  // Add new admin
   const handleAddAdmin = async (e) => {
     e.preventDefault();
     
     try {
+      setActionLoading(true);
       const token = getAuthToken();
       if (!token) {
-        alert('لم يتم العثور على رمز المصادقة');
+        alert('Authentication token not found');
         return;
       }
 
@@ -170,39 +175,42 @@ const Dashboard = () => {
       const result = await handleResponse(response);
 
       if (result.success) {
-        alert('تم إضافة الإدمن بنجاح');
+        alert('Admin added successfully');
         setShowAddModal(false);
         setFormData({ name: '', email: '', password: '', password_confirmation: '' });
         setFormErrors({});
         fetchAdmins();
       } else {
         setFormErrors(result.errors || {});
-        alert(result.message || 'حدث خطأ أثناء الإضافة');
+        alert(result.message || 'Error occurred during addition');
       }
     } catch (err) {
-      alert('حدث خطأ في الاتصال بالخادم: ' + err.message);
+      alert('Server connection error: ' + err.message);
       console.error('Error adding admin:', err);
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  // دالة لتعديل إدمن
+  // Edit admin
   const handleEditAdmin = async (e) => {
     e.preventDefault();
     
     try {
+      setActionLoading(true);
       const token = getAuthToken();
       if (!token) {
-        alert('لم يتم العثور على رمز المصادقة');
+        alert('Authentication token not found');
         return;
       }
 
-      // إنشاء بيانات التعديل (لا نرسل كلمة المرور إذا كانت فارغة)
+      // Create update data (don't send password if empty)
       const updateData = {
         name: formData.name,
         email: formData.email
       };
 
-      // إضافة كلمة المرور فقط إذا تم إدخالها
+      // Add password only if entered
       if (formData.password) {
         updateData.password = formData.password;
         updateData.password_confirmation = formData.password_confirmation;
@@ -221,7 +229,7 @@ const Dashboard = () => {
       const result = await handleResponse(response);
 
       if (result.success) {
-        alert('تم تعديل الإدمن بنجاح');
+        alert('Admin updated successfully');
         setShowEditModal(false);
         setEditingAdmin(null);
         setFormData({ name: '', email: '', password: '', password_confirmation: '' });
@@ -229,22 +237,24 @@ const Dashboard = () => {
         fetchAdmins();
       } else {
         setFormErrors(result.errors || {});
-        alert(result.message || 'حدث خطأ أثناء التعديل');
+        alert(result.message || 'Error occurred during update');
       }
     } catch (err) {
-      alert('حدث خطأ في الاتصال بالخادم: ' + err.message);
+      alert('Server connection error: ' + err.message);
       console.error('Error editing admin:', err);
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  // دالة لفتح نموذج الإضافة
+  // Open add modal
   const openAddModal = () => {
     setShowAddModal(true);
     setFormData({ name: '', email: '', password: '', password_confirmation: '' });
     setFormErrors({});
   };
 
-  // دالة لفتح نموذج التعديل
+  // Open edit modal
   const openEditModal = (admin) => {
     setEditingAdmin(admin);
     setFormData({
@@ -257,7 +267,7 @@ const Dashboard = () => {
     setShowEditModal(true);
   };
 
-  // دالة لإغلاق النماذج
+  // Close modals
   const closeModals = () => {
     setShowAddModal(false);
     setShowEditModal(false);
@@ -266,14 +276,14 @@ const Dashboard = () => {
     setFormErrors({});
   };
 
-  // دالة لتغيير بيانات النموذج
+  // Handle form changes
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
-    // مسح الخطأ عند الكتابة
+    // Clear error when typing
     if (formErrors[name]) {
       setFormErrors(prev => ({
         ...prev,
@@ -282,9 +292,9 @@ const Dashboard = () => {
     }
   };
 
-  // ==================== دوال إدارة المقالات ====================
+  // ==================== Articles Functions ====================
 
-  // دالة لجلب المقالات
+  // Fetch articles
   const fetchArticles = async () => {
     try {
       setArticlesLoading(true);
@@ -292,7 +302,7 @@ const Dashboard = () => {
       const token = getAuthToken();
       
       if (!token) {
-        throw new Error('لم يتم العثور على رمز المصادقة');
+        throw new Error('Authentication token not found');
       }
 
       const response = await fetch('http://localhost:8000/api/v1/articles', {
@@ -305,7 +315,7 @@ const Dashboard = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`فشل في جلب المقالات: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to fetch articles: ${response.status} ${response.statusText}`);
       }
 
       const result = await handleResponse(response);
@@ -315,7 +325,7 @@ const Dashboard = () => {
         setArticleStats(result.data.stats);
         setCategories(result.data.categories);
       } else {
-        setArticlesError(result.message || 'حدث خطأ غير معروف');
+        setArticlesError(result.message || 'Unknown error occurred');
       }
     } catch (err) {
       setArticlesError(err.message);
@@ -325,14 +335,15 @@ const Dashboard = () => {
     }
   };
 
-  // دالة لإنشاء مقال جديد
+  // Create new article
   const handleAddArticle = async (e) => {
     e.preventDefault();
     
     try {
+      setArticleActionLoading(true);
       const token = getAuthToken();
       if (!token) {
-        alert('لم يتم العثور على رمز المصادقة');
+        alert('Authentication token not found');
         return;
       }
 
@@ -362,7 +373,7 @@ const Dashboard = () => {
       const result = await handleResponse(response);
 
       if (result.success) {
-        alert('تم إنشاء المقال بنجاح');
+        alert('Article created successfully');
         setShowAddArticleModal(false);
         setArticleFormData({
           title: '',
@@ -377,103 +388,96 @@ const Dashboard = () => {
         fetchArticles();
       } else {
         setArticleFormErrors(result.errors || {});
-        alert(result.message || 'حدث خطأ أثناء إنشاء المقال');
+        alert(result.message || 'Error occurred while creating article');
       }
     } catch (err) {
-      alert('حدث خطأ في الاتصال بالخادم: ' + err.message);
+      alert('Server connection error: ' + err.message);
       console.error('Error adding article:', err);
+    } finally {
+      setArticleActionLoading(false);
     }
   };
 
-
-
-// دالة محسنة لتعديل المقال مع معالجة أفضل للأخطاء
-const handleEditArticle = async (e) => {
-  e.preventDefault();
-  
-  try {
-    const token = getAuthToken();
-    if (!token) {
-      alert('لم يتم العثور على رمز المصادقة - يرجى تسجيل الدخول مرة أخرى');
-      return;
-    }
-
-    console.log('Editing article ID:', editingArticle.id);
-    console.log('Form data:', articleFormData);
-
-    const requestData = {
-      title: articleFormData.title,
-      category_id: parseInt(articleFormData.category_id),
-      excerpt: articleFormData.excerpt || '',
-      content: articleFormData.content,
-      status: articleFormData.status,
-      _method: 'PUT' // استخدام هذه الطريقة للتعامل مع بعض الخوادم
-    };
-
-    if (articleFormData.published_at) {
-      requestData.published_at = articleFormData.published_at;
-    }
-
-    console.log('Sending request data:', requestData);
-
-    const response = await fetch(`http://localhost:8000/api/v1/articles/${editingArticle.id}`, {
-      method: 'POST', // استخدام POST مع _method
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(requestData)
-    });
-
-    console.log('Response status:', response.status);
-    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
-    const result = await handleResponse(response);
-
-    console.log('Server response:', result);
-
-    if (result.success) {
-      alert('تم تحديث المقال بنجاح');
-      setShowEditArticleModal(false);
-      setEditingArticle(null);
-      setArticleFormData({
-        title: '',
-        category_id: '',
-        excerpt: '',
-        content: '',
-        status: 'draft',
-        published_at: ''
-      });
-      setArticleImage(null);
-      setArticleFormErrors({});
-      fetchArticles();
-    } else {
-      setArticleFormErrors(result.errors || {});
-      alert(result.message || 'حدث خطأ أثناء تحديث المقال');
-    }
-  } catch (err) {
-    console.error('Error editing article:', err);
+  // Edit article
+  const handleEditArticle = async (e) => {
+    e.preventDefault();
     
-    // رسائل خطأ أكثر وضوحاً
-    if (err.message.includes('CORS') || err.message.includes('Failed to fetch')) {
-      alert('خطأ في الاتصال بالخادم: مشكلة في الـ CORS. تأكد من أن الخادم يعمل ويسمح بالطلبات من هذا النطاق.');
-    } else {
-      alert('حدث خطأ في الاتصال بالخادم: ' + err.message);
-    }
-  }
-};
+    try {
+      setArticleActionLoading(true);
+      const token = getAuthToken();
+      if (!token) {
+        alert('Authentication token not found - please login again');
+        return;
+      }
 
-  // دالة لحذف مقال
+      const requestData = {
+        title: articleFormData.title,
+        category_id: parseInt(articleFormData.category_id),
+        excerpt: articleFormData.excerpt || '',
+        content: articleFormData.content,
+        status: articleFormData.status,
+        _method: 'PUT'
+      };
+
+      if (articleFormData.published_at) {
+        requestData.published_at = articleFormData.published_at;
+      }
+
+      const response = await fetch(`http://localhost:8000/api/v1/articles/${editingArticle.id}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      });
+
+      const result = await handleResponse(response);
+
+      if (result.success) {
+        alert('Article updated successfully');
+        setShowEditArticleModal(false);
+        setEditingArticle(null);
+        setArticleFormData({
+          title: '',
+          category_id: '',
+          excerpt: '',
+          content: '',
+          status: 'draft',
+          published_at: ''
+        });
+        setArticleImage(null);
+        setArticleFormErrors({});
+        fetchArticles();
+      } else {
+        setArticleFormErrors(result.errors || {});
+        alert(result.message || 'Error occurred while updating article');
+      }
+    } catch (err) {
+      console.error('Error editing article:', err);
+      
+      if (err.message.includes('CORS') || err.message.includes('Failed to fetch')) {
+        alert('Server connection error: CORS issue. Make sure the server is running and allows requests from this domain.');
+      } else {
+        alert('Server connection error: ' + err.message);
+      }
+    } finally {
+      setArticleActionLoading(false);
+    }
+  };
+
+  // Delete article
   const handleDeleteArticle = async (article) => {
-    if (!window.confirm(`هل أنت متأكد من حذف المقال "${article.title}"؟`)) {
+    if (!window.confirm(`Are you sure you want to delete the article "${article.title}"?`)) {
       return;
     }
 
     try {
+      setArticleActionLoading(true);
       const token = getAuthToken();
       if (!token) {
-        alert('لم يتم العثور على رمز المصادقة');
+        alert('Authentication token not found');
         return;
       }
 
@@ -489,23 +493,26 @@ const handleEditArticle = async (e) => {
       const result = await handleResponse(response);
 
       if (result.success) {
-        alert('تم حذف المقال بنجاح');
+        alert('Article deleted successfully');
         fetchArticles();
       } else {
-        alert(result.message || 'حدث خطأ أثناء حذف المقال');
+        alert(result.message || 'Error occurred while deleting article');
       }
     } catch (err) {
-      alert('حدث خطأ أثناء الحذف: ' + err.message);
+      alert('Error occurred during deletion: ' + err.message);
       console.error('Error deleting article:', err);
+    } finally {
+      setArticleActionLoading(false);
     }
   };
 
-  // دالة لنشر مقال
+  // Publish article
   const handlePublishArticle = async (article) => {
     try {
+      setArticleActionLoading(true);
       const token = getAuthToken();
       if (!token) {
-        alert('لم يتم العثور على رمز المصادقة');
+        alert('Authentication token not found');
         return;
       }
 
@@ -521,23 +528,26 @@ const handleEditArticle = async (e) => {
       const result = await handleResponse(response);
 
       if (result.success) {
-        alert('تم نشر المقال بنجاح');
+        alert('Article published successfully');
         fetchArticles();
       } else {
-        alert(result.message || 'حدث خطأ أثناء نشر المقال');
+        alert(result.message || 'Error occurred while publishing article');
       }
     } catch (err) {
-      alert('حدث خطأ أثناء النشر: ' + err.message);
+      alert('Error occurred during publishing: ' + err.message);
       console.error('Error publishing article:', err);
+    } finally {
+      setArticleActionLoading(false);
     }
   };
 
-  // دالة لإلغاء نشر مقال
+  // Unpublish article
   const handleUnpublishArticle = async (article) => {
     try {
+      setArticleActionLoading(true);
       const token = getAuthToken();
       if (!token) {
-        alert('لم يتم العثور على رمز المصادقة');
+        alert('Authentication token not found');
         return;
       }
 
@@ -553,23 +563,25 @@ const handleEditArticle = async (e) => {
       const result = await handleResponse(response);
 
       if (result.success) {
-        alert('تم إلغاء نشر المقال بنجاح');
+        alert('Article unpublished successfully');
         fetchArticles();
       } else {
-        alert(result.message || 'حدث خطأ أثناء إلغاء نشر المقال');
+        alert(result.message || 'Error occurred while unpublishing article');
       }
     } catch (err) {
-      alert('حدث خطأ أثناء إلغاء النشر: ' + err.message);
+      alert('Error occurred during unpublishing: ' + err.message);
       console.error('Error unpublishing article:', err);
+    } finally {
+      setArticleActionLoading(false);
     }
   };
 
-  // دالة لعرض تفاصيل المقال
+  // View article details
   const handleViewArticle = (article) => {
-    alert(`تفاصيل المقال:\nالعنوان: ${article.title}\nالتصنيف: ${article.category?.name}\nالحالة: ${article.status}\nالمؤلف: ${article.admin?.name}\nالمشاهدات: ${article.views_count}\nتاريخ النشر: ${article.published_at ? new Date(article.published_at).toLocaleDateString('ar-SA') : 'غير منشور'}`);
+    alert(`Article Details:\nTitle: ${article.title}\nCategory: ${article.category?.name}\nStatus: ${article.status}\nAuthor: ${article.admin?.name}\nViews: ${article.views_count}\nPublished Date: ${article.published_at ? new Date(article.published_at).toLocaleDateString('en-US') : 'Not published'}`);
   };
 
-  // دالة لفتح نموذج إضافة مقال
+  // Open add article modal
   const openAddArticleModal = () => {
     setShowAddArticleModal(true);
     setArticleFormData({
@@ -584,7 +596,7 @@ const handleEditArticle = async (e) => {
     setArticleFormErrors({});
   };
 
-  // دالة لفتح نموذج تعديل مقال
+  // Open edit article modal
   const openEditArticleModal = (article) => {
     setEditingArticle(article);
     setArticleFormData({
@@ -600,7 +612,7 @@ const handleEditArticle = async (e) => {
     setShowEditArticleModal(true);
   };
 
-  // دالة لإغلاق نماذج المقالات
+  // Close article modals
   const closeArticleModals = () => {
     setShowAddArticleModal(false);
     setShowEditArticleModal(false);
@@ -617,14 +629,14 @@ const handleEditArticle = async (e) => {
     setArticleFormErrors({});
   };
 
-  // دالة لتغيير بيانات نموذج المقال
+  // Handle article form changes
   const handleArticleFormChange = (e) => {
     const { name, value } = e.target;
     setArticleFormData(prev => ({
       ...prev,
       [name]: value
     }));
-    // مسح الخطأ عند الكتابة
+    // Clear error when typing
     if (articleFormErrors[name]) {
       setArticleFormErrors(prev => ({
         ...prev,
@@ -633,12 +645,12 @@ const handleEditArticle = async (e) => {
     }
   };
 
-  // دالة لتغيير صورة المقال
+  // Handle article image change
   const handleArticleImageChange = (e) => {
     setArticleImage(e.target.files[0]);
   };
 
-  // جلب البيانات عند تحميل المكون وعند تغيير القسم
+  // Fetch data when component loads and when section changes
   useEffect(() => {
     if (activeSection === 'users') {
       fetchAdmins();
@@ -681,16 +693,6 @@ const handleEditArticle = async (e) => {
     if (window.innerWidth <= 768) {
       setMobileSidebarActive(false);
     }
-  };
-
-  // Open modal
-  const openModal = (modalName) => {
-    setActiveModal(modalName);
-  };
-
-  // Close modal
-  const closeModal = () => {
-    setActiveModal(null);
   };
 
   // Handle table row click
@@ -889,7 +891,7 @@ const handleEditArticle = async (e) => {
               {/* Loading State */}
               {articlesLoading && (
                 <div className="loading-dash">
-                  <i className="fas fa-spinner fa-spin"></i> جاري تحميل المقالات...
+                  <i className="fas fa-spinner fa-spin"></i> Loading articles...
                 </div>
               )}
               
@@ -1007,7 +1009,7 @@ const handleEditArticle = async (e) => {
               {/* Loading State */}
               {articlesLoading && (
                 <div className="loading-dash">
-                  <i className="fas fa-spinner fa-spin"></i> جاري تحميل المقالات...
+                  <i className="fas fa-spinner fa-spin"></i> Loading articles...
                 </div>
               )}
               
@@ -1104,7 +1106,7 @@ const handleEditArticle = async (e) => {
           <section className={`section-dash ${activeSection === 'categories' ? 'active-dash' : ''}`} id="categories">
             <div className="section-header-dash">
               <h1 className="section-title-dash">Categories Management</h1>
-              <button className="btn-dash btn-primary-dash" onClick={() => openModal('addCategory')}>
+              <button className="btn-dash btn-primary-dash">
                 <i className="fas fa-plus"></i> Add New Category
               </button>
             </div>
@@ -1142,9 +1144,9 @@ const handleEditArticle = async (e) => {
           {/* Users Section */}
           <section className={`section-dash ${activeSection === 'users' ? 'active-dash' : ''}`} id="users">
             <div className="section-header-dash">
-              <h1 className="section-title-dash">إدارة المستخدمين</h1>
+              <h1 className="section-title-dash">Users Management</h1>
               <button className="btn-dash btn-primary-dash" onClick={openAddModal}>
-                <i className="fas fa-plus"></i> إضافة مستخدم جديد
+                <i className="fas fa-plus"></i> Add New User
               </button>
             </div>
             
@@ -1152,16 +1154,12 @@ const handleEditArticle = async (e) => {
             <div className="table-container-dash">
               <div className="table-controls-dash">
                 <div className="table-controls-left-dash">
-                  <h3>جميع المستخدمين ({admins.length})</h3>
+                  <h3>All Users ({admins.length})</h3>
                 </div>
                 <div className="table-controls-right-dash">
-                  <select className="select-dash">
-                    <option>جميع المستخدمين</option>
-                    <option>نشط</option>
-                    <option>غير نشط</option>
-                  </select>
+                 
                   <button className="btn-dash btn-outline-dash" onClick={fetchAdmins}>
-                    <i className="fas fa-sync-alt"></i> تحديث
+                    <i className="fas fa-sync-alt"></i> Refresh
                   </button>
                 </div>
               </div>
@@ -1169,7 +1167,7 @@ const handleEditArticle = async (e) => {
               {/* Loading State */}
               {loading && (
                 <div className="loading-dash">
-                  <i className="fas fa-spinner fa-spin"></i> جاري تحميل البيانات...
+                  <i className="fas fa-spinner fa-spin"></i> Loading data...
                 </div>
               )}
               
@@ -1186,17 +1184,17 @@ const handleEditArticle = async (e) => {
                   <table className="table-dash">
                     <thead>
                       <tr>
-                        <th>الاسم</th>
-                        <th>البريد الإلكتروني</th>
-                        <th>تاريخ الإنشاء</th>
-                        <th>الإجراءات</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Created At</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {admins.length === 0 ? (
                         <tr>
                           <td colSpan="4" className="text-center-dash">
-                            لا توجد بيانات
+                            No data available
                           </td>
                         </tr>
                       ) : (
@@ -1204,31 +1202,24 @@ const handleEditArticle = async (e) => {
                           <tr key={admin.id} onClick={(e) => handleTableRowClick(e)}>
                             <td>{admin.name}</td>
                             <td>{admin.email}</td>
-                            <td>{new Date(admin.created_at).toLocaleDateString('ar-SA')}</td>
+                            <td>{new Date(admin.created_at).toLocaleDateString('en-US')}</td>
                             <td>
                               <div className="table-actions-dash">
                                 <button 
                                   className="table-action-dash table-action-view-dash"
                                   onClick={() => handleViewAdmin(admin)}
-                                  title="عرض التفاصيل"
+                                  title="View Details"
                                 >
                                   <i className="fas fa-eye"></i>
                                 </button>
                                 <button 
                                   className="table-action-dash table-action-edit-dash"
                                   onClick={() => openEditModal(admin)}
-                                  title="تعديل"
+                                  title="Edit"
                                 >
                                   <i className="fas fa-edit"></i>
                                 </button>
-                                <button 
-                                  className="table-action-dash table-action-delete-dash"
-                                  onClick={() => handleDeleteAdmin(admin.id, admin.name)}
-                                  title="حذف"
-                                  disabled={admins.length <= 1}
-                                >
-                                  <i className="fas fa-trash"></i>
-                                </button>
+                              
                               </div>
                             </td>
                           </tr>
@@ -1257,7 +1248,7 @@ const handleEditArticle = async (e) => {
         </main>
       </div>
 
-     {/* Add Article Modal */}
+      {/* Add Article Modal */}
       <div className={`modal-dash ${showAddArticleModal ? 'active-dash' : ''}`}>
         <div className="modal-content-dash" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header-dash">
@@ -1368,7 +1359,15 @@ const handleEditArticle = async (e) => {
           </div>
           <div className="modal-footer-dash">
             <button className="btn-dash btn-outline-dash" onClick={closeArticleModals}>Cancel</button>
-            <button className="btn-dash btn-primary-dash" onClick={handleAddArticle}>Save Article</button>
+            <button className="btn-dash btn-primary-dash" onClick={handleAddArticle} disabled={articleActionLoading}>
+              {articleActionLoading ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i> Saving...
+                </>
+              ) : (
+                'Save Article'
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -1485,48 +1484,15 @@ const handleEditArticle = async (e) => {
           </div>
           <div className="modal-footer-dash">
             <button className="btn-dash btn-outline-dash" onClick={closeArticleModals}>Cancel</button>
-            <button className="btn-dash btn-primary-dash" onClick={handleEditArticle}>Update Article</button>
-          </div>
-        </div>
-      </div>
-
-      {/* Add Category Modal */}
-      <div className={`modal-dash ${activeModal === 'addCategory' ? 'active-dash' : ''}`} id="addCategoryModal">
-        <div className="modal-content-dash" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-header-dash">
-            <h2 className="modal-title-dash">Add New Category</h2>
-            <button className="modal-close-dash" onClick={closeModal}>
-              <i className="fas fa-times"></i>
+            <button className="btn-dash btn-primary-dash" onClick={handleEditArticle} disabled={articleActionLoading}>
+              {articleActionLoading ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i> Updating...
+                </>
+              ) : (
+                'Update Article'
+              )}
             </button>
-          </div>
-          <div className="modal-body-dash">
-            <form id="categoryForm">
-              <div className="form-group-dash">
-                <label className="form-label-dash" htmlFor="categoryName">Name</label>
-                <input type="text" className="form-control-dash" id="categoryName" placeholder="Enter category name" />
-              </div>
-              <div className="form-group-dash">
-                <label className="form-label-dash" htmlFor="categoryDescription">Description</label>
-                <textarea className="form-control-dash" id="categoryDescription" placeholder="Enter category description"></textarea>
-              </div>
-              <div className="form-group-dash">
-                <label className="form-label-dash" htmlFor="categoryParent">Parent Category</label>
-                <select className="form-control-dash" id="categoryParent">
-                  <option value="">None (Top Level)</option>
-                  <option value="technology">Technology</option>
-                  <option value="business">Business</option>
-                  <option value="health">Health</option>
-                </select>
-              </div>
-              <div className="form-group-dash">
-                <label className="form-label-dash" htmlFor="categoryColor">Color</label>
-                <input type="color" className="form-control-dash" id="categoryColor" defaultValue="#4361ee" />
-              </div>
-            </form>
-          </div>
-          <div className="modal-footer-dash">
-            <button className="btn-dash btn-outline-dash" onClick={closeModal}>Cancel</button>
-            <button className="btn-dash btn-primary-dash">Save Category</button>
           </div>
         </div>
       </div>
@@ -1535,7 +1501,7 @@ const handleEditArticle = async (e) => {
       <div className={`modal-dash ${showAddModal ? 'active-dash' : ''}`}>
         <div className="modal-content-dash" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header-dash">
-            <h2 className="modal-title-dash">إضافة مستخدم جديد</h2>
+            <h2 className="modal-title-dash">Add New User</h2>
             <button className="modal-close-dash" onClick={closeModals}>
               <i className="fas fa-times"></i>
             </button>
@@ -1543,7 +1509,7 @@ const handleEditArticle = async (e) => {
           <div className="modal-body-dash">
             <form onSubmit={handleAddAdmin}>
               <div className="form-group-dash">
-                <label className="form-label-dash">الاسم</label>
+                <label className="form-label-dash">Name</label>
                 <input 
                   type="text" 
                   className="form-control-dash" 
@@ -1556,7 +1522,7 @@ const handleEditArticle = async (e) => {
               </div>
               
               <div className="form-group-dash">
-                <label className="form-label-dash">البريد الإلكتروني</label>
+                <label className="form-label-dash">Email</label>
                 <input 
                   type="email" 
                   className="form-control-dash" 
@@ -1569,7 +1535,7 @@ const handleEditArticle = async (e) => {
               </div>
               
               <div className="form-group-dash">
-                <label className="form-label-dash">كلمة المرور</label>
+                <label className="form-label-dash">Password</label>
                 <input 
                   type="password" 
                   className="form-control-dash" 
@@ -1582,7 +1548,7 @@ const handleEditArticle = async (e) => {
               </div>
               
               <div className="form-group-dash">
-                <label className="form-label-dash">تأكيد كلمة المرور</label>
+                <label className="form-label-dash">Confirm Password</label>
                 <input 
                   type="password" 
                   className="form-control-dash" 
@@ -1595,8 +1561,16 @@ const handleEditArticle = async (e) => {
             </form>
           </div>
           <div className="modal-footer-dash">
-            <button className="btn-dash btn-outline-dash" onClick={closeModals}>إلغاء</button>
-            <button className="btn-dash btn-primary-dash" onClick={handleAddAdmin}>حفظ</button>
+            <button className="btn-dash btn-outline-dash" onClick={closeModals}>Cancel</button>
+            <button className="btn-dash btn-primary-dash" onClick={handleAddAdmin} disabled={actionLoading}>
+              {actionLoading ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i> Saving...
+                </>
+              ) : (
+                'Save'
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -1605,7 +1579,7 @@ const handleEditArticle = async (e) => {
       <div className={`modal-dash ${showEditModal ? 'active-dash' : ''}`}>
         <div className="modal-content-dash" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header-dash">
-            <h2 className="modal-title-dash">تعديل المستخدم</h2>
+            <h2 className="modal-title-dash">Edit User</h2>
             <button className="modal-close-dash" onClick={closeModals}>
               <i className="fas fa-times"></i>
             </button>
@@ -1613,7 +1587,7 @@ const handleEditArticle = async (e) => {
           <div className="modal-body-dash">
             <form onSubmit={handleEditAdmin}>
               <div className="form-group-dash">
-                <label className="form-label-dash">الاسم</label>
+                <label className="form-label-dash">Name</label>
                 <input 
                   type="text" 
                   className="form-control-dash" 
@@ -1626,7 +1600,7 @@ const handleEditArticle = async (e) => {
               </div>
               
               <div className="form-group-dash">
-                <label className="form-label-dash">البريد الإلكتروني</label>
+                <label className="form-label-dash">Email</label>
                 <input 
                   type="email" 
                   className="form-control-dash" 
@@ -1639,34 +1613,42 @@ const handleEditArticle = async (e) => {
               </div>
               
               <div className="form-group-dash">
-                <label className="form-label-dash">كلمة المرور الجديدة (اختياري)</label>
+                <label className="form-label-dash">New Password (Optional)</label>
                 <input 
                   type="password" 
                   className="form-control-dash" 
                   name="password"
                   value={formData.password}
                   onChange={handleFormChange}
-                  placeholder="اتركه فارغاً إذا لم ترد التغيير"
+                  placeholder="Leave empty if you don't want to change"
                 />
                 {formErrors.password && <div className="error-message-dash">{formErrors.password[0]}</div>}
               </div>
               
               <div className="form-group-dash">
-                <label className="form-label-dash">تأكيد كلمة المرور</label>
+                <label className="form-label-dash">Confirm Password</label>
                 <input 
                   type="password" 
                   className="form-control-dash" 
                   name="password_confirmation"
                   value={formData.password_confirmation}
                   onChange={handleFormChange}
-                  placeholder="اتركه فارغاً إذا لم ترد التغيير"
+                  placeholder="Leave empty if you don't want to change"
                 />
               </div>
             </form>
           </div>
           <div className="modal-footer-dash">
-            <button className="btn-dash btn-outline-dash" onClick={closeModals}>إلغاء</button>
-            <button className="btn-dash btn-primary-dash" onClick={handleEditAdmin}>تحديث</button>
+            <button className="btn-dash btn-outline-dash" onClick={closeModals}>Cancel</button>
+            <button className="btn-dash btn-primary-dash" onClick={handleEditAdmin} disabled={actionLoading}>
+              {actionLoading ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i> Updating...
+                </>
+              ) : (
+                'Update'
+              )}
+            </button>
           </div>
         </div>
       </div>

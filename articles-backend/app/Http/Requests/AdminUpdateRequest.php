@@ -25,8 +25,15 @@ class AdminUpdateRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.unique' => 'البريد الإلكتروني مسجل مسبقاً',
-            'password.confirmed' => 'كلمة المرور غير متطابقة',
+            'name.string' => 'Name must be a string',
+            'name.max' => 'Name may not be greater than 255 characters',
+            'email.string' => 'Email must be a string',
+            'email.email' => 'Email must be a valid email address',
+            'email.max' => 'Email may not be greater than 255 characters',
+            'email.unique' => 'Email is already registered',
+            'password.string' => 'Password must be a string',
+            'password.min' => 'Password must be at least 8 characters',
+            'password.confirmed' => 'Password confirmation does not match',
         ];
     }
 }

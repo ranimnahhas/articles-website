@@ -20,12 +20,15 @@ class AdminController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            Log::info('Fetching all admins');
+            Log::info('Fetching all admins with pagination');
             
-            $admins = $this->adminService->getAllAdmins();
+            $perPage = $request->get('per_page', 10);
+            $page = $request->get('page', 1);
+            
+            $admins = $this->adminService->getAllAdminsPaginated($perPage, $page);
 
             if ($admins->isEmpty()) {
                 Log::info('No admins found in the system');
@@ -33,17 +36,45 @@ class AdminController extends Controller
                     'success' => true,
                     'message' => 'No admin accounts found in the system',
                     'data' => [],
-                    'count' => 0
+                    'pagination' => [
+                        'current_page' => 1,
+                        'last_page' => 1,
+                        'per_page' => $perPage,
+                        'total' => 0,
+                        'from' => 0,
+                        'to' => 0,
+                        'first_page_url' => null,
+                        'last_page_url' => null,
+                        'next_page_url' => null,
+                        'prev_page_url' => null,
+                        'path' => $request->url()
+                    ]
                 ]);
             }
 
-            Log::info('Successfully fetched ' . $admins->count() . ' admin accounts');
+            Log::info('Successfully fetched admins with pagination', [
+                'total' => $admins->total(),
+                'per_page' => $admins->perPage(),
+                'current_page' => $admins->currentPage()
+            ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Admin accounts retrieved successfully',
-                'data' => $admins,
-                'count' => $admins->count()
+                'data' => $admins->items(),
+                'pagination' => [
+                    'current_page' => $admins->currentPage(),
+                    'last_page' => $admins->lastPage(),
+                    'per_page' => $admins->perPage(),
+                    'total' => $admins->total(),
+                    'from' => $admins->firstItem(),
+                    'to' => $admins->lastItem(),
+                    'first_page_url' => $admins->url(1),
+                    'last_page_url' => $admins->url($admins->lastPage()),
+                    'next_page_url' => $admins->nextPageUrl(),
+                    'prev_page_url' => $admins->previousPageUrl(),
+                    'path' => $request->url()
+                ]
             ]);
 
         } catch (Exception $e) {
@@ -139,93 +170,88 @@ class AdminController extends Controller
     /**
      * Update the specified resource in storage.
      */
- /**
- * Update the specified resource in storage.
- */
-public function update(AdminUpdateRequest $request, string $id): JsonResponse
-{
-    try {
-        Log::info('Updating admin account', ['admin_id' => $id]);
+    public function update(AdminUpdateRequest $request, string $id): JsonResponse
+    {
+        try {
+            Log::info('Updating admin account', ['admin_id' => $id]);
 
-        $admin = $this->adminService->findAdminById($id);
+            $admin = $this->adminService->findAdminById($id);
 
-        if (!$admin) {
-            Log::warning('Admin account not found for update', ['admin_id' => $id]);
+            if (!$admin) {
+                Log::warning('Admin account not found for update', ['admin_id' => $id]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Admin account not found. Cannot update non-existing account.'
+                ], 404);
+            }
+
+            $updateData = $request->validated();
             
-            return response()->json([
-                'success' => false,
-                'message' => 'Admin account not found. Cannot update non-existing account.'
-            ], 404);
-        }
+            Log::info('Update data received', [
+                'admin_id' => $id,
+                'update_data' => $updateData
+            ]);
 
-        $updateData = $request->validated();
-        
-        // تسجيل البيانات قبل التعديل
-        Log::info('Update data received', [
-            'admin_id' => $id,
-            'update_data' => $updateData
-        ]);
+            $changes = [];
+            
+            if (isset($updateData['name']) && $updateData['name'] !== $admin->name) {
+                $changes[] = 'name';
+            }
+            if (isset($updateData['email']) && $updateData['email'] !== $admin->email) {
+                $changes[] = 'email';
+            }
+            if (isset($updateData['password'])) {
+                $changes[] = 'password';
+            }
 
-        $changes = [];
-        
-        if (isset($updateData['name']) && $updateData['name'] !== $admin->name) {
-            $changes[] = 'name';
-        }
-        if (isset($updateData['email']) && $updateData['email'] !== $admin->email) {
-            $changes[] = 'email';
-        }
-        if (isset($updateData['password'])) {
-            $changes[] = 'password';
-        }
+            if (empty($changes)) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'No changes detected. Admin account information remains the same.',
+                    'data' => $admin
+                ]);
+            }
 
-        if (empty($changes)) {
+            $updatedAdmin = $this->adminService->updateAdmin($admin, $updateData);
+
+            $updatedAdmin->refresh();
+
+            Log::info('Admin account updated successfully', [
+                'admin_id' => $id,
+                'changes' => $changes,
+                'new_data' => $updatedAdmin->toArray()
+            ]);
+
+            $changeMessage = 'Admin account updated successfully. ' . 
+                           'Changes made: ' . implode(', ', $changes) . '.';
+
             return response()->json([
                 'success' => true,
-                'message' => 'No changes detected. Admin account information remains the same.',
-                'data' => $admin
+                'message' => $changeMessage,
+                'data' => $updatedAdmin,
+                'changes' => $changes
             ]);
+
+        } catch (Exception $e) {
+            Log::error('Error updating admin account: ' . $e->getMessage(), [
+                'admin_id' => $id,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            $errorMessage = 'Failed to update admin account';
+            if (str_contains($e->getMessage(), 'Duplicate entry')) {
+                $errorMessage = 'This email address is already registered to another admin account';
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $errorMessage,
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
-
-        // تنفيذ التحديث
-        $updatedAdmin = $this->adminService->updateAdmin($admin, $updateData);
-
-        // إعادة تحميل البيانات من الداتابيز
-        $updatedAdmin->refresh();
-
-        Log::info('Admin account updated successfully', [
-            'admin_id' => $id,
-            'changes' => $changes,
-            'new_data' => $updatedAdmin->toArray()
-        ]);
-
-        $changeMessage = 'Admin account updated successfully. ' . 
-                       'Changes made: ' . implode(', ', $changes) . '.';
-
-        return response()->json([
-            'success' => true,
-            'message' => $changeMessage,
-            'data' => $updatedAdmin,
-            'changes' => $changes
-        ]);
-
-    } catch (Exception $e) {
-        Log::error('Error updating admin account: ' . $e->getMessage(), [
-            'admin_id' => $id,
-            'trace' => $e->getTraceAsString()
-        ]);
-
-        $errorMessage = 'Failed to update admin account';
-        if (str_contains($e->getMessage(), 'Duplicate entry')) {
-            $errorMessage = 'This email address is already registered to another admin account';
-        }
-
-        return response()->json([
-            'success' => false,
-            'message' => $errorMessage,
-            'error' => config('app.debug') ? $e->getMessage() : null
-        ], 500);
     }
-}
+
     /**
      * Remove the specified resource from storage.
      */
@@ -245,7 +271,6 @@ public function update(AdminUpdateRequest $request, string $id): JsonResponse
                 ], 404);
             }
 
-            // منع حذف الحساب إذا كان هو الحساب الوحيد
             $totalAdmins = Admin::count();
             if ($totalAdmins <= 1) {
                 return response()->json([
@@ -375,39 +400,40 @@ public function update(AdminUpdateRequest $request, string $id): JsonResponse
             ], 500);
         }
     }
+
     /**
- * الحصول على معلومات الإدمن الحالي
- */
-public function getProfile(Request $request): JsonResponse
-{
-    try {
-        $admin = $request->user();
-        
-        if (!$admin) {
+     * Get current admin profile
+     */
+    public function getProfile(Request $request): JsonResponse
+    {
+        try {
+            $admin = $request->user();
+            
+            if (!$admin) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Admin data not found'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $admin->id,
+                    'name' => $admin->name,
+                    'email' => $admin->email,
+                    'created_at' => $admin->created_at->format('Y-m-d H:i:s'),
+                    'updated_at' => $admin->updated_at->format('Y-m-d H:i:s')
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Error fetching admin profile: ' . $e->getMessage());
+            
             return response()->json([
                 'success' => false,
-                'message' => 'لم يتم العثور على بيانات الإدمن'
-            ], 404);
+                'message' => 'Error occurred while fetching admin information'
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'id' => $admin->id,
-                'name' => $admin->name,
-                'email' => $admin->email,
-                'created_at' => $admin->created_at->format('Y-m-d H:i:s'),
-                'updated_at' => $admin->updated_at->format('Y-m-d H:i:s')
-            ]
-        ]);
-
-    } catch (Exception $e) {
-        Log::error('خطأ في جلب بروفايل الإدمن: ' . $e->getMessage());
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'حدث خطأ في جلب معلومات الإدمن'
-        ], 500);
     }
-}
 }

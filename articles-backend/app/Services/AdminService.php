@@ -7,9 +7,23 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Exception;
 use Illuminate\Database\QueryException;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class AdminService
 {
+    public function getAllAdminsPaginated($perPage = 10, $page = 1)
+    {
+        try {
+            return Admin::paginate($perPage, ['*'], 'page', $page);
+        } catch (QueryException $e) {
+            Log::error('Database error while fetching admins: ' . $e->getMessage());
+            throw new Exception('Unable to retrieve admins from database');
+        } catch (Exception $e) {
+            Log::error('Unexpected error while fetching admins: ' . $e->getMessage());
+            throw new Exception('Failed to retrieve admins');
+        }
+    }
+
     public function getAllAdmins()
     {
         try {
@@ -66,7 +80,7 @@ class AdminService
             }
 
             $admin->update($data);
-            return $admin->fresh(); // إرجاع البيانات المحدثة
+            return $admin->fresh();
 
         } catch (QueryException $e) {
             Log::error('Database error while updating admin: ' . $e->getMessage(), ['admin_id' => $admin->id]);
@@ -122,40 +136,38 @@ class AdminService
             throw new Exception('Authentication service temporarily unavailable');
         }
     }
-    /**
- * الحصول على معلومات الإدمن الحالي
- */
-public function getCurrentAdminInfo($adminId): array
-{
-    try {
-        Log::info('جلب معلومات الإدمن', ['admin_id' => $adminId]);
-        
-        $admin = $this->findAdminById($adminId);
-        
-        if (!$admin) {
+
+    public function getCurrentAdminInfo($adminId): array
+    {
+        try {
+            Log::info('Fetching admin information', ['admin_id' => $adminId]);
+            
+            $admin = $this->findAdminById($adminId);
+            
+            if (!$admin) {
+                return [
+                    'success' => false,
+                    'message' => 'Admin not found'
+                ];
+            }
+
+            return [
+                'success' => true,
+                'data' => [
+                    'id' => $admin->id,
+                    'name' => $admin->name,
+                    'email' => $admin->email,
+                    'created_at' => $admin->created_at,
+                    'updated_at' => $admin->updated_at
+                ]
+            ];
+
+        } catch (Exception $e) {
+            Log::error('Error fetching admin information: ' . $e->getMessage(), ['admin_id' => $adminId]);
             return [
                 'success' => false,
-                'message' => 'الإدمن غير موجود'
+                'message' => 'Failed to fetch admin information'
             ];
         }
-
-        return [
-            'success' => true,
-            'data' => [
-                'id' => $admin->id,
-                'name' => $admin->name,
-                'email' => $admin->email,
-                'created_at' => $admin->created_at,
-                'updated_at' => $admin->updated_at
-            ]
-        ];
-
-    } catch (Exception $e) {
-        Log::error('خطأ في جلب معلومات الإدمن: ' . $e->getMessage(), ['admin_id' => $adminId]);
-        return [
-            'success' => false,
-            'message' => 'فشل في جلب معلومات الإدمن'
-        ];
     }
-}
 }
