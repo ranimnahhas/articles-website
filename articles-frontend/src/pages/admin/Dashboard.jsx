@@ -86,6 +86,17 @@ const Dashboard = () => {
     to: 0
   });
 
+  // Modal states for viewing content
+  const [showContentModal, setShowContentModal] = useState(false);
+  const [selectedContent, setSelectedContent] = useState('');
+  const [selectedContentTitle, setSelectedContentTitle] = useState('');
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedImage, setSelectedImage] = useState('');
+
+  // Article details modal
+  const [showArticleDetailsModal, setShowArticleDetailsModal] = useState(false);
+  const [selectedArticle, setSelectedArticle] = useState(null);
+
   // Get admin name from localStorage
   const [adminName, setAdminName] = useState('');
 
@@ -715,9 +726,46 @@ const Dashboard = () => {
     }
   };
 
-  // View article details
-  const handleViewArticle = (article) => {
-    alert(`Article Details:\nTitle: ${article.title}\nCategory: ${article.category?.name}\nStatus: ${article.status}\nAuthor: ${article.admin?.name}\nViews: ${article.views_count}\nPublished Date: ${article.published_at ? new Date(article.published_at).toLocaleDateString('en-US') : 'Not published'}`);
+  // View article details in modal
+  const handleViewArticleDetails = (article) => {
+    setSelectedArticle(article);
+    setShowArticleDetailsModal(true);
+  };
+
+  // Close article details modal
+  const closeArticleDetailsModal = () => {
+    setShowArticleDetailsModal(false);
+    setSelectedArticle(null);
+  };
+
+  // View content in modal
+  const handleViewContent = (content, title) => {
+    setSelectedContent(content);
+    setSelectedContentTitle(title);
+    setShowContentModal(true);
+  };
+
+  // View image in modal
+  const handleViewImage = (imageUrl) => {
+    if (imageUrl) {
+      setSelectedImage(imageUrl);
+      setShowImageModal(true);
+    } else {
+      alert('No image available for this article');
+    }
+  };
+
+  // Close content modal
+  const closeContentModal = () => {
+    setShowContentModal(false);
+    setSelectedContent('');
+    setSelectedContentTitle('');
+  };
+
+  // Close image modal
+  const closeImageModal = () => {
+    setShowImageModal(false);
+    setSelectedImage('');
   };
 
   // Open add article modal
@@ -935,6 +983,45 @@ const Dashboard = () => {
     } catch (err) {
       alert('Server connection error: ' + err.message);
       console.error('Error editing category:', err);
+    } finally {
+      setCategoryActionLoading(false);
+    }
+  };
+
+  // Delete category
+  const handleDeleteCategory = async (category) => {
+    if (!window.confirm(`Are you sure you want to delete the category "${category.name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setCategoryActionLoading(true);
+      const token = getAuthToken();
+      if (!token) {
+        alert('Authentication token not found');
+        return;
+      }
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/categories/${category.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      const result = await handleResponse(response);
+
+      if (result.success) {
+        alert('Category deleted successfully');
+        fetchCategories(categoriesPagination.current_page, categoriesPagination.per_page);
+      } else {
+        alert(result.message || 'Error occurred while deleting category');
+      }
+    } catch (err) {
+      alert('Error occurred during deletion: ' + err.message);
+      console.error('Error deleting category:', err);
     } finally {
       setCategoryActionLoading(false);
     }
@@ -1180,7 +1267,7 @@ const Dashboard = () => {
 
   // Handle table row click
   const handleTableRowClick = (e) => {
-    if (!e.target.closest('.table-actions-dash')) {
+    if (!e.target.closest('.table-actions-dash') && !e.target.closest('.clickable-title-dash')) {
       e.currentTarget.classList.toggle('selected-dash');
     }
   };
@@ -1205,7 +1292,6 @@ const Dashboard = () => {
             </button>
            
             <div className="header-user-dash">
-            
               <div className="header-user-info-dash">
                 <div className="header-user-name-dash">{adminName || 'Administrator'}</div>
                 <div className="header-user-role-dash text-muted-dash">Administrator</div>
@@ -1387,7 +1473,7 @@ const Dashboard = () => {
                   <table className="table-dash">
                     <thead>
                       <tr>
-                        <th>Title</th>
+                        <th>Title '(Click on Title to see more information)'</th>
                         <th>Category</th>
                         <th>Status</th>
                         <th>Author</th>
@@ -1399,7 +1485,15 @@ const Dashboard = () => {
                     <tbody>
                       {articles.slice(0, 5).map((article) => (
                         <tr key={article.id} onClick={handleTableRowClick}>
-                          <td>{article.title}</td>
+                          <td>
+                            <span 
+                              className="clickable-title-dash text-primary-dash"
+                              onClick={() => handleViewArticleDetails(article)}
+                              title="Click to view full details"
+                            >
+                              {article.title}
+                            </span>
+                          </td>
                           <td>{article.category?.name}</td>
                           <td>
                             <span className={`badge-dash ${
@@ -1415,13 +1509,6 @@ const Dashboard = () => {
                           <td>{article.published_at ? new Date(article.published_at).toLocaleDateString('en-US') : 'Not published'}</td>
                           <td>
                             <div className="table-actions-dash">
-                              <button 
-                                className="table-action-dash table-action-view-dash"
-                                onClick={() => handleViewArticle(article)}
-                                title="View Article"
-                              >
-                                <i className="fas fa-eye"></i>
-                              </button>
                               <button 
                                 className="table-action-dash table-action-edit-dash"
                                 onClick={() => openEditArticleModal(article)}
@@ -1506,19 +1593,30 @@ const Dashboard = () => {
                     <thead>
                       <tr>
                         <th>Title</th>
+                        <th>Slug</th>
                         <th>Category</th>
-                        <th>Status</th>
                         <th>Author</th>
-                        <th>Views</th>
-                        <th>Date</th>
+                        <th>Status</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {articles.map((article) => (
                         <tr key={article.id} onClick={handleTableRowClick}>
-                          <td>{article.title}</td>
+                          <td>
+                            <span 
+                              className="clickable-title-dash text-primary-dash"
+                              onClick={() => handleViewArticleDetails(article)}
+                              title="Click to view full details"
+                            >
+                              {article.title}
+                            </span>
+                          </td>
+                          <td className="text-ellipsis-dash" title={article.slug}>
+                            {article.slug}
+                          </td>
                           <td>{article.category?.name}</td>
+                          <td>{article.admin?.name}</td>
                           <td>
                             <span className={`badge-dash ${
                               article.status === 'published' ? 'badge-published-dash' : 
@@ -1528,18 +1626,8 @@ const Dashboard = () => {
                               article.status === 'draft' ? 'Draft' : 'Archived'}
                             </span>
                           </td>
-                          <td>{article.admin?.name}</td>
-                          <td>{article.views_count}</td>
-                          <td>{article.published_at ? new Date(article.published_at).toLocaleDateString('en-US') : 'Not published'}</td>
                           <td>
                             <div className="table-actions-dash">
-                              <button 
-                                className="table-action-dash table-action-view-dash"
-                                onClick={() => handleViewArticle(article)}
-                                title="View Article"
-                              >
-                                <i className="fas fa-eye"></i>
-                              </button>
                               <button 
                                 className="table-action-dash table-action-edit-dash"
                                 onClick={() => openEditArticleModal(article)}
@@ -1684,6 +1772,13 @@ const Dashboard = () => {
                                   title="Edit"
                                 >
                                   <i className="fas fa-edit"></i>
+                                </button>
+                                <button 
+                                  className="table-action-dash table-action-delete-dash"
+                                  onClick={() => handleDeleteCategory(category)}
+                                  title="Delete Category"
+                                >
+                                  <i className="fas fa-trash"></i>
                                 </button>
                               </div>
                             </td>
@@ -1850,6 +1945,165 @@ const Dashboard = () => {
             </div>
           </section>
         </main>
+      </div>
+
+      {/* Article Details Modal */}
+      <div className={`modal-dash ${showArticleDetailsModal ? 'active-dash' : ''}`}>
+        <div className="modal-content-dash modal-content-large-dash" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header-dash">
+            <h2 className="modal-title-dash">Article Details</h2>
+            <button className="modal-close-dash" onClick={closeArticleDetailsModal}>
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+          <div className="modal-body-dash">
+            {selectedArticle && (
+              <div className="article-details-dash">
+                <div className="detail-row-dash">
+                  <div className="detail-label-dash">Title:</div>
+                  <div className="detail-value-dash">{selectedArticle.title}</div>
+                </div>
+                <div className="detail-row-dash">
+                  <div className="detail-label-dash">Slug:</div>
+                  <div className="detail-value-dash">{selectedArticle.slug}</div>
+                </div>
+                <div className="detail-row-dash">
+                  <div className="detail-label-dash">Category:</div>
+                  <div className="detail-value-dash">{selectedArticle.category?.name}</div>
+                </div>
+                <div className="detail-row-dash">
+                  <div className="detail-label-dash">Author:</div>
+                  <div className="detail-value-dash">{selectedArticle.admin?.name}</div>
+                </div>
+                <div className="detail-row-dash">
+                  <div className="detail-label-dash">Status:</div>
+                  <div className="detail-value-dash">
+                    <span className={`badge-dash ${
+                      selectedArticle.status === 'published' ? 'badge-published-dash' : 
+                      selectedArticle.status === 'draft' ? 'badge-draft-dash' : 'badge-archived-dash'
+                    }`}>
+                      {selectedArticle.status === 'published' ? 'Published' : 
+                      selectedArticle.status === 'draft' ? 'Draft' : 'Archived'}
+                    </span>
+                  </div>
+                </div>
+                <div className="detail-row-dash">
+                  <div className="detail-label-dash">Views:</div>
+                  <div className="detail-value-dash">{selectedArticle.views_count}</div>
+                </div>
+                <div className="detail-row-dash">
+                  <div className="detail-label-dash">Excerpt:</div>
+                  <div className="detail-value-dash">
+                    {selectedArticle.excerpt || 'No excerpt available'}
+                  </div>
+                </div>
+                <div className="detail-row-dash">
+                  <div className="detail-label-dash">Content:</div>
+                  <div className="detail-value-dash content-preview-dash">
+                    {selectedArticle.content || 'No content available'}
+                  </div>
+                </div>
+                <div className="detail-row-dash">
+                  <div className="detail-label-dash">Image:</div>
+                  <div className="detail-value-dash">
+                    {selectedArticle.image_url ? (
+                      <img 
+                        src={`${API_CONFIG.BASE_URL}${selectedArticle.image_url}`} 
+                        alt="Article" 
+                        className="article-image-preview-dash"
+                        onError={(e) => {
+                          e.target.src = '/images/placeholder.jpg';
+                        }}
+                      />
+                    ) : (
+                      <span className="text-muted-dash">No image</span>
+                    )}
+                  </div>
+                </div>
+                <div className="detail-row-dash">
+                  <div className="detail-label-dash">Created At:</div>
+                  <div className="detail-value-dash">
+                    {new Date(selectedArticle.created_at).toLocaleDateString('en-US')}
+                  </div>
+                </div>
+                <div className="detail-row-dash">
+                  <div className="detail-label-dash">Published At:</div>
+                  <div className="detail-value-dash">
+                    {selectedArticle.published_at ? 
+                      new Date(selectedArticle.published_at).toLocaleDateString('en-US') : 
+                      'Not published'
+                    }
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="modal-footer-dash">
+            <button className="btn-dash btn-outline-dash" onClick={closeArticleDetailsModal}>
+              Close
+            </button>
+            <button 
+              className="btn-dash btn-primary-dash" 
+              onClick={() => {
+                closeArticleDetailsModal();
+                openEditArticleModal(selectedArticle);
+              }}
+            >
+              <i className="fas fa-edit"></i> Edit Article
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Content View Modal */}
+      <div className={`modal-dash ${showContentModal ? 'active-dash' : ''}`}>
+        <div className="modal-content-dash modal-content-large-dash" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header-dash">
+            <h2 className="modal-title-dash">{selectedContentTitle}</h2>
+            <button className="modal-close-dash" onClick={closeContentModal}>
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+          <div className="modal-body-dash">
+            <div className="content-view-dash">
+              {selectedContent || 'No content available'}
+            </div>
+          </div>
+          <div className="modal-footer-dash">
+            <button className="btn-dash btn-outline-dash" onClick={closeContentModal}>
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Image View Modal */}
+      <div className={`modal-dash ${showImageModal ? 'active-dash' : ''}`}>
+        <div className="modal-content-dash" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header-dash">
+            <h2 className="modal-title-dash">Article Image</h2>
+            <button className="modal-close-dash" onClick={closeImageModal}>
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+          <div className="modal-body-dash">
+            <div className="image-view-dash">
+              <img 
+                src={`${API_CONFIG.BASE_URL}${selectedImage}`} 
+                alt="Article" 
+                className="article-image-dash"
+                onError={(e) => {
+                  e.target.src = '/images/placeholder.jpg';
+                }}
+              />
+            </div>
+          </div>
+          <div className="modal-footer-dash">
+            <button className="btn-dash btn-outline-dash" onClick={closeImageModal}>
+              Close
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Add Article Modal */}
@@ -2125,7 +2379,19 @@ const Dashboard = () => {
                 {categoryFormErrors.name && <div className="error-message-dash">{categoryFormErrors.name[0]}</div>}
               </div>
               
-             
+              <div className="form-group-dash">
+                <label className="form-label-dash">Slug</label>
+                <input 
+                  type="text" 
+                  className="form-control-dash" 
+                  name="slug"
+                  value={categoryFormData.slug}
+                  onChange={handleCategoryFormChange}
+                  required
+                  placeholder="URL-friendly version of the name"
+                />
+                {categoryFormErrors.slug && <div className="error-message-dash">{categoryFormErrors.slug[0]}</div>}
+              </div>
               
               <div className="form-group-dash">
                 <label className="form-label-dash">Status</label>
@@ -2181,7 +2447,19 @@ const Dashboard = () => {
                 {categoryFormErrors.name && <div className="error-message-dash">{categoryFormErrors.name[0]}</div>}
               </div>
               
-             
+              <div className="form-group-dash">
+                <label className="form-label-dash">Slug</label>
+                <input 
+                  type="text" 
+                  className="form-control-dash" 
+                  name="slug"
+                  value={categoryFormData.slug}
+                  onChange={handleCategoryFormChange}
+                  required
+                  placeholder="URL-friendly version of the name"
+                />
+                {categoryFormErrors.slug && <div className="error-message-dash">{categoryFormErrors.slug[0]}</div>}
+              </div>
               
               <div className="form-group-dash">
                 <label className="form-label-dash">Status</label>
