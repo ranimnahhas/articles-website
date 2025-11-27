@@ -2125,19 +2125,7 @@ const Dashboard = () => {
                 {categoryFormErrors.name && <div className="error-message-dash">{categoryFormErrors.name[0]}</div>}
               </div>
               
-              <div className="form-group-dash">
-                <label className="form-label-dash">Slug</label>
-                <input 
-                  type="text" 
-                  className="form-control-dash" 
-                  name="slug"
-                  value={categoryFormData.slug}
-                  onChange={handleCategoryFormChange}
-                  required
-                  placeholder="URL-friendly version of the name"
-                />
-                {categoryFormErrors.slug && <div className="error-message-dash">{categoryFormErrors.slug[0]}</div>}
-              </div>
+             
               
               <div className="form-group-dash">
                 <label className="form-label-dash">Status</label>
@@ -2193,19 +2181,7 @@ const Dashboard = () => {
                 {categoryFormErrors.name && <div className="error-message-dash">{categoryFormErrors.name[0]}</div>}
               </div>
               
-              <div className="form-group-dash">
-                <label className="form-label-dash">Slug</label>
-                <input 
-                  type="text" 
-                  className="form-control-dash" 
-                  name="slug"
-                  value={categoryFormData.slug}
-                  onChange={handleCategoryFormChange}
-                  required
-                  placeholder="URL-friendly version of the name"
-                />
-                {categoryFormErrors.slug && <div className="error-message-dash">{categoryFormErrors.slug[0]}</div>}
-              </div>
+             
               
               <div className="form-group-dash">
                 <label className="form-label-dash">Status</label>
