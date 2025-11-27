@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
+import API_CONFIG from '../../config';
 
 const Dashboard = () => {
   const [darkMode, setDarkMode] = useState(false);
@@ -88,7 +89,7 @@ const Dashboard = () => {
         throw new Error('Authentication token not found');
       }
 
-      const response = await fetch(`http://localhost:8000/api/v1/admins?page=${page}&per_page=${perPage}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/admins?page=${page}&per_page=${perPage}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -117,45 +118,6 @@ const Dashboard = () => {
     }
   };
 
-  // Delete admin
-  const handleDeleteAdmin = async (adminId, adminName) => {
-    if (!window.confirm(`Are you sure you want to delete ${adminName}?`)) {
-      return;
-    }
-
-    try {
-      setActionLoading(true);
-      const token = getAuthToken();
-      if (!token) {
-        alert('Authentication token not found');
-        return;
-      }
-
-      const response = await fetch(`http://localhost:8000/api/v1/admins/${adminId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      });
-
-      const result = await handleResponse(response);
-
-      if (result.success) {
-        alert('Admin deleted successfully');
-        fetchAdmins(pagination.current_page, pagination.per_page);
-      } else {
-        alert(result.message || 'Error occurred during deletion');
-      }
-    } catch (err) {
-      alert('Error occurred during deletion: ' + err.message);
-      console.error('Error deleting admin:', err);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   // View admin details
   const handleViewAdmin = (admin) => {
     alert(`Admin Details:\nName: ${admin.name}\nEmail: ${admin.email}\nCreated At: ${new Date(admin.created_at).toLocaleDateString('en-US')}`);
@@ -173,7 +135,7 @@ const Dashboard = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/v1/admins', {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/admins`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -227,7 +189,7 @@ const Dashboard = () => {
         updateData.password_confirmation = formData.password_confirmation;
       }
 
-      const response = await fetch(`http://localhost:8000/api/v1/admins/${editingAdmin.id}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/admins/${editingAdmin.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -454,7 +416,7 @@ const Dashboard = () => {
         throw new Error('Authentication token not found');
       }
 
-      const response = await fetch('http://localhost:8000/api/v1/articles', {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/articles`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -511,7 +473,7 @@ const Dashboard = () => {
         formDataToSend.append('image', articleImage);
       }
 
-      const response = await fetch('http://localhost:8000/api/v1/articles', {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/articles`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -572,7 +534,7 @@ const Dashboard = () => {
         requestData.published_at = articleFormData.published_at;
       }
 
-      const response = await fetch(`http://localhost:8000/api/v1/articles/${editingArticle.id}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/articles/${editingArticle.id}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -630,7 +592,7 @@ const Dashboard = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:8000/api/v1/articles/${article.id}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/articles/${article.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -665,7 +627,7 @@ const Dashboard = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:8000/api/v1/articles/${article.id}/publish`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/articles/${article.id}/publish`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -700,7 +662,7 @@ const Dashboard = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:8000/api/v1/articles/${article.id}/unpublish`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/articles/${article.id}/unpublish`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -869,12 +831,9 @@ const Dashboard = () => {
             <button className="header-action-btn-dash theme-toggle-dash" onClick={toggleDarkMode}>
               <i className={darkMode ? "fas fa-sun" : "fas fa-moon"}></i>
             </button>
-            <button className="header-action-btn-dash">
-              <i className="fas fa-bell"></i>
-              <span className="header-action-badge-dash">3</span>
-            </button>
+           
             <div className="header-user-dash">
-              <div className="header-user-avatar-dash">JD</div>
+            
               <div className="header-user-info-dash">
                 <div className="header-user-name-dash">John Doe</div>
                 <div className="header-user-role-dash text-muted-dash">Administrator</div>
@@ -1384,13 +1343,6 @@ const Dashboard = () => {
                                   title="Edit"
                                 >
                                   <i className="fas fa-edit"></i>
-                                </button>
-                                <button 
-                                  className="table-action-dash table-action-delete-dash"
-                                  onClick={() => handleDeleteAdmin(admin.id, admin.name)}
-                                  title="Delete"
-                                >
-                                  <i className="fas fa-trash"></i>
                                 </button>
                               </div>
                             </td>
