@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ArticleController;
+use App\Http\Controllers\ContactMessageController;
 use Illuminate\Http\Request;
 use App\Http\Controllers\CommentController;
 use Illuminate\Support\Facades\Route;
@@ -17,6 +18,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/article/{articleId}', [CommentController::class, 'getArticleComments']);
         Route::post('/', [CommentController::class, 'store']);
     });
+    Route::post('/contact', [ContactMessageController::class, 'store']);
 
     // Protected admin routes - routes المحمية بالإدمن
    Route::middleware('auth:sanctum')->group(function () {
@@ -61,8 +63,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/articles/{article}/publish', [ArticleController::class, 'publish']);
         Route::post('/articles/{article}/unpublish', [ArticleController::class, 'unpublish']);
         Route::post('/articles/{article}/increment-views', [ArticleController::class, 'incrementViews']);
+        Route::get('/admin/messages', [ContactMessageController::class, 'index']);
+        Route::put('/admin/messages/{id}/reviewed', [ContactMessageController::class, 'markAsReviewed']);
     });
-
+     
     // Public articles routes - مقالات للزوار
     Route::get('/public/articles', [ArticleController::class, 'publicIndex']);
     Route::get('/public/articles/{article}', [ArticleController::class, 'publicShow']);

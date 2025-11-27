@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Services\ArticleService;
 use App\Services\CategoryService;
+use App\Services\ContactMessageService;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -18,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(CategoryService::class, function ($app) {
             return new CategoryService();
         });
+        
+        $this->app->bind(ContactMessageService::class, function ($app) {
+            return new ContactMessageService();
+        }); 
     }
 
     public function boot(): void

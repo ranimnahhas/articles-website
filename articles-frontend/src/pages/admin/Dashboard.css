@@ -460,7 +460,110 @@
 .stat-card-change-negative-dash {
   color: var(--danger-dash);
 }
+/* Additional Badge Styles for Messages */
+.badge-new-dash {
+  background: rgba(67, 97, 238, 0.2);
+  color: var(--primary-dash);
+  border: 1px solid var(--primary-dash);
+}
 
+.badge-reviewed-dash {
+  background: rgba(108, 117, 125, 0.2);
+  color: var(--gray-dash);
+  border: 1px solid var(--gray-dash);
+}
+
+/* Text ellipsis for long content */
+.text-ellipsis-dash {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Additional Badge Styles for Comments */
+.badge-pending-dash {
+  background: rgba(255, 152, 0, 0.2);
+  color: var(--warning-dash);
+  border: 1px solid var(--warning-dash);
+}
+
+.badge-approved-dash {
+  background: rgba(76, 175, 80, 0.2);
+  color: var(--success-dash);
+  border: 1px solid var(--success-dash);
+}
+
+.badge-rejected-dash {
+  background: rgba(244, 67, 54, 0.2);
+  color: var(--danger-dash);
+  border: 1px solid var(--danger-dash);
+}
+
+/* Additional table action styles */
+.table-action-danger-dash {
+  background: rgba(244, 67, 54, 0.1);
+  color: var(--danger-dash);
+}
+
+.table-action-danger-dash:hover {
+  background: rgba(244, 67, 54, 0.2);
+  transform: scale(1.1);
+}
+/* Comments Badges */
+.badge-pending-dash {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.badge-approved-dash {
+  background-color: #28a745;
+  color: white;
+}
+
+.badge-rejected-dash {
+  background-color: #dc3545;
+  color: white;
+}
+
+/* Messages Badges */
+.badge-new-dash {
+  background-color: #dc3545;
+  color: white;
+}
+
+.badge-reviewed-dash {
+  background-color: #6c757d;
+  color: white;
+}
+
+/* Table Actions */
+.table-action-danger-dash {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.table-action-danger-dash:hover {
+  background-color: #c82333;
+}
+
+.table-action-success-dash {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.table-action-success-dash:hover {
+  background-color: #218838;
+}
 /* Tables */
 .table-container-dash {
   background: rgba(255, 255, 255, 0.8);

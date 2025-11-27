@@ -87,7 +87,25 @@ const Dashboard = () => {
     from: 0,
     to: 0
   });
-
+   // States for Contact Messages
+const [messages, setMessages] = useState([]);
+const [messagesLoading, setMessagesLoading] = useState(false);
+const [messagesError, setMessagesError] = useState(null);
+const [messageStats, setMessageStats] = useState({
+  total: 0,
+  new: 0,
+  reviewed: 0
+});
+// States for Comments
+const [comments, setComments] = useState([]);
+const [commentsLoading, setCommentsLoading] = useState(false);
+const [commentsError, setCommentsError] = useState(null);
+const [commentStats, setCommentStats] = useState({
+  total: 0,
+  pending: 0,
+  approved: 0,
+  rejected: 0
+});
   // Modal states for viewing content
   const [showContentModal, setShowContentModal] = useState(false);
   const [selectedContent, setSelectedContent] = useState('');
@@ -116,7 +134,192 @@ const Dashboard = () => {
       return `${API_CONFIG.STORAGE_URL}/storage/${imageUrl}`;
     }
   };
+  // Fetch data when component loads and when section changes
+useEffect(() => {
+  if (activeSection === 'users') {
+    fetchAdmins();
+  }
+  if (activeSection === 'articles' || activeSection === 'dashboard') {
+    fetchArticles();
+  }
+  if (activeSection === 'categories') {
+    fetchCategories();
+  }
+  if (activeSection === 'messages') {
+    fetchMessages(); // ← أضف هذا السطر
+  }
+}, [activeSection]);
+// Fetch comments
+// Fetch comments
+const fetchComments = async () => {
+  try {
+    setCommentsLoading(true);
+    setCommentsError(null);
+    const token = getAuthToken();
+    
+    if (!token) {
+      return;
+    }
 
+    const response = await fetch(`${API_CONFIG.BASE_URL}/admin/comments`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch comments: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await handleResponse(response);
+    
+    if (result.success) {
+      setComments(result.data.data || result.data); // Handle both paginated and non-paginated responses
+      
+      // حساب الإحصائيات
+      const commentsData = result.data.data || result.data;
+      const total = commentsData.length;
+      const pending = commentsData.filter(comment => comment.status === 'pending').length;
+      const approved = commentsData.filter(comment => comment.status === 'approved').length;
+      const rejected = commentsData.filter(comment => comment.status === 'rejected').length;
+      
+      setCommentStats({
+        total,
+        pending,
+        approved,
+        rejected
+      });
+    } else {
+      setCommentsError(result.message || 'Unknown error occurred');
+    }
+  } catch (err) {
+    setCommentsError(err.message);
+    console.error('Error fetching comments:', err);
+  } finally {
+    setCommentsLoading(false);
+  }
+};
+
+// Approve comment
+const handleApproveComment = async (commentId) => {
+  try {
+    const token = getAuthToken();
+    if (!token) {
+      return;
+    }
+
+    const response = await fetch(`${API_CONFIG.BASE_URL}/admin/comments/${commentId}/status`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        status: 'approved'
+      })
+    });
+
+    const result = await handleResponse(response);
+
+    if (result.success) {
+      alert('Comment approved successfully');
+      // تحديث الحالة محلياً
+      setComments(comments.map(comment => 
+        comment.id === commentId ? { ...comment, status: 'approved' } : comment
+      ));
+      // تحديث الإحصائيات
+      fetchComments();
+    } else {
+      alert(result.message || 'Error occurred while approving comment');
+    }
+  } catch (err) {
+    alert('Error occurred: ' + err.message);
+    console.error('Error approving comment:', err);
+  }
+};
+
+// Reject comment
+const handleRejectComment = async (commentId) => {
+  try {
+    const token = getAuthToken();
+    if (!token) {
+      return;
+    }
+
+    const response = await fetch(`${API_CONFIG.BASE_URL}/admin/comments/${commentId}/status`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        status: 'rejected'
+      })
+    });
+
+    const result = await handleResponse(response);
+
+    if (result.success) {
+      alert('Comment rejected successfully');
+      // تحديث الحالة محلياً
+      setComments(comments.map(comment => 
+        comment.id === commentId ? { ...comment, status: 'rejected' } : comment
+      ));
+      // تحديث الإحصائيات
+      fetchComments();
+    } else {
+      alert(result.message || 'Error occurred while rejecting comment');
+    }
+  } catch (err) {
+    alert('Error occurred: ' + err.message);
+    console.error('Error rejecting comment:', err);
+  }
+};
+
+// Delete comment
+const handleDeleteComment = async (comment) => {
+  if (!window.confirm(`Are you sure you want to delete this comment by ${comment.name}?`)) {
+    return;
+  }
+
+  try {
+    const token = getAuthToken();
+    if (!token) {
+      return;
+    }
+
+    const response = await fetch(`${API_CONFIG.BASE_URL}/admin/comments/${comment.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+
+    const result = await handleResponse(response);
+
+    if (result.success) {
+      alert('Comment deleted successfully');
+      fetchComments();
+    } else {
+      alert(result.message || 'Error occurred while deleting comment');
+    }
+  } catch (err) {
+    alert('Error occurred during deletion: ' + err.message);
+    console.error('Error deleting comment:', err);
+  }
+};
+
+// View comment details
+const handleViewComment = (comment) => {
+  alert(`Comment Details:\nID: ${comment.id}\nUser: ${comment.name}\nEmail: ${comment.email}\nArticle: ${comment.article?.title || 'N/A'}\nComment: ${comment.content}\nStatus: ${comment.status}\nDate: ${new Date(comment.created_at).toLocaleDateString('en-US')}`);
+};
   // Helper function to get auth token with redirection
   const getAuthToken = () => {
     const token = localStorage.getItem('admin_token') || localStorage.getItem('adminToken');
@@ -291,7 +494,114 @@ const Dashboard = () => {
       setActionLoading(false);
     }
   };
+  // Fetch data when component loads and when section changes
+useEffect(() => {
+  if (activeSection === 'users') {
+    fetchAdmins();
+  }
+  if (activeSection === 'articles' || activeSection === 'dashboard') {
+    fetchArticles();
+  }
+  if (activeSection === 'categories') {
+    fetchCategories();
+  }
+  if (activeSection === 'messages') {
+    fetchMessages();
+  }
+  if (activeSection === 'comments') {
+    fetchComments(); // ← أضف هذا السطر
+  }
+}, [activeSection]);
+// Fetch contact messages
+const fetchMessages = async () => {
+  try {
+    setMessagesLoading(true);
+    setMessagesError(null);
+    const token = getAuthToken();
+    
+    if (!token) {
+      return;
+    }
 
+    const response = await fetch(`${API_CONFIG.BASE_URL}/admin/messages`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch messages: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await handleResponse(response);
+    
+    if (result.success) {
+      setMessages(result.data);
+      
+      // حساب الإحصائيات
+      const total = result.data.length;
+      const newMessages = result.data.filter(msg => msg.status === 'new').length;
+      const reviewed = result.data.filter(msg => msg.status === 'reviewed').length;
+      
+      setMessageStats({
+        total,
+        new: newMessages,
+        reviewed
+      });
+    } else {
+      setMessagesError(result.message || 'Unknown error occurred');
+    }
+  } catch (err) {
+    setMessagesError(err.message);
+    console.error('Error fetching messages:', err);
+  } finally {
+    setMessagesLoading(false);
+  }
+};
+
+// Mark message as reviewed
+const handleMarkAsReviewed = async (messageId) => {
+  try {
+    const token = getAuthToken();
+    if (!token) {
+      return;
+    }
+
+    const response = await fetch(`${API_CONFIG.BASE_URL}/admin/messages/${messageId}/reviewed`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+
+    const result = await handleResponse(response);
+
+    if (result.success) {
+      alert('Message marked as reviewed');
+      // تحديث الحالة محلياً
+      setMessages(messages.map(msg => 
+        msg.id === messageId ? { ...msg, status: 'reviewed' } : msg
+      ));
+      // تحديث الإحصائيات
+      fetchMessages();
+    } else {
+      alert(result.message || 'Error occurred while updating message');
+    }
+  } catch (err) {
+    alert('Error occurred: ' + err.message);
+    console.error('Error marking message as reviewed:', err);
+  }
+};
+
+// View message details
+const handleViewMessage = (message) => {
+  alert(`Message Details:\nName: ${message.name}\nEmail: ${message.email}\nSubject: ${message.subject}\nMessage: ${message.message}\nStatus: ${message.status}\nDate: ${new Date(message.created_at).toLocaleDateString('en-US')}`);
+};
   // Open add modal
   const openAddModal = () => {
     setShowAddModal(true);
@@ -1880,30 +2190,346 @@ const Dashboard = () => {
           </section>
 
           {/* Comments Section */}
-          <section className={`section-dash ${activeSection === 'comments' ? 'active-dash' : ''}`} id="comments">
-            <div className="section-header-dash">
-              <h1 className="section-title-dash">Comments Management</h1>
-              <button className="btn-dash btn-primary-dash">
-                <i className="fas fa-cog"></i> Moderation Settings
-              </button>
-            </div>
-            <div className="text-center-dash mt-2-dash">
-              <p className="text-muted-dash">Comments management section - content would be loaded here</p>
-            </div>
-          </section>
+<section className={`section-dash ${activeSection === 'comments' ? 'active-dash' : ''}`} id="comments">
+  <div className="section-header-dash">
+    <h1 className="section-title-dash">Comments Management</h1>
+    <button className="btn-dash btn-outline-dash" onClick={fetchComments}>
+      <i className="fas fa-sync-alt"></i> Refresh
+    </button>
+  </div>
 
-          {/* Messages Section */}
-          <section className={`section-dash ${activeSection === 'messages' ? 'active-dash' : ''}`} id="messages">
-            <div className="section-header-dash">
-              <h1 className="section-title-dash">Contact Messages</h1>
-              <button className="btn-dash btn-outline-dash">
-                <i className="fas fa-download"></i> Export Messages
-              </button>
-            </div>
-            <div className="text-center-dash mt-2-dash">
-              <p className="text-muted-dash">Messages management section - content would be loaded here</p>
-            </div>
-          </section>
+  {/* Comments Stats Cards */}
+  <div className="stats-dash">
+    <div className="stat-card-dash">
+      <div className="stat-card-header-dash">
+        <div className="stat-card-title-dash">Total Comments</div>
+        <div className="stat-card-icon-dash stat-card-icon-blue-dash">
+          <i className="fas fa-comments"></i>
+        </div>
+      </div>
+      <div className="stat-card-value-dash">{commentStats.total}</div>
+      <div className="stat-card-change-dash stat-card-change-positive-dash">
+        <i className="fas fa-comments"></i> All comments
+      </div>
+    </div>
+    <div className="stat-card-dash">
+      <div className="stat-card-header-dash">
+        <div className="stat-card-title-dash">Pending</div>
+        <div className="stat-card-icon-dash stat-card-icon-orange-dash">
+          <i className="fas fa-clock"></i>
+        </div>
+      </div>
+      <div className="stat-card-value-dash">{commentStats.pending}</div>
+      <div className="stat-card-change-dash stat-card-change-positive-dash">
+        <i className="fas fa-clock"></i> Need moderation
+      </div>
+    </div>
+    <div className="stat-card-dash">
+      <div className="stat-card-header-dash">
+        <div className="stat-card-title-dash">Approved</div>
+        <div className="stat-card-icon-dash stat-card-icon-green-dash">
+          <i className="fas fa-check-circle"></i>
+        </div>
+      </div>
+      <div className="stat-card-value-dash">{commentStats.approved}</div>
+      <div className="stat-card-change-dash stat-card-change-positive-dash">
+        <i className="fas fa-check"></i> Published
+      </div>
+    </div>
+    <div className="stat-card-dash">
+      <div className="stat-card-header-dash">
+        <div className="stat-card-title-dash">Rejected</div>
+        <div className="stat-card-icon-dash stat-card-icon-red-dash">
+          <i className="fas fa-times-circle"></i>
+        </div>
+      </div>
+      <div className="stat-card-value-dash">{commentStats.rejected}</div>
+      <div className="stat-card-change-dash stat-card-change-negative-dash">
+        <i className="fas fa-times"></i> Not approved
+      </div>
+    </div>
+  </div>
+
+  {/* Comments Table */}
+  <div className="table-container-dash">
+    <div className="table-controls-dash">
+      <div className="table-controls-left-dash">
+        <h3>Comments Management ({comments.length})</h3>
+        <div className="text-muted-dash">
+          {commentStats.pending} comments pending moderation
+        </div>
+      </div>
+      <div className="table-controls-right-dash">
+        <button className="btn-dash btn-outline-dash" onClick={fetchComments}>
+          <i className="fas fa-sync-alt"></i> Refresh
+        </button>
+      </div>
+    </div>
+    
+    {commentsLoading && (
+      <div className="loading-dash">
+        <i className="fas fa-spinner fa-spin"></i> Loading comments...
+      </div>
+    )}
+    
+    {commentsError && (
+      <div className="error-dash">
+        <i className="fas fa-exclamation-triangle"></i> {commentsError}
+      </div>
+    )}
+    
+    {!commentsLoading && !commentsError && (
+      <>
+        <table className="table-dash">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>User</th>
+              <th>Email</th>
+              <th>Article</th>
+              <th>Comment</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {comments.length === 0 ? (
+              <tr>
+                <td colSpan="8" className="text-center-dash">
+                  No comments available
+                </td>
+              </tr>
+            ) : (
+              comments.map((comment) => (
+                <tr key={comment.id} onClick={(e) => handleTableRowClick(e)}>
+                  <td>#{comment.id}</td>
+                  <td>
+                    <strong>{comment.user_name}</strong>
+                  </td>
+                  <td>{comment.user_email}</td>
+                  <td className="text-ellipsis-dash" title={comment.article?.title || 'N/A'}>
+                    {comment.article?.title ? 
+                      (comment.article.title.length > 30 ? 
+                        `${comment.article.title.substring(0, 30)}...` : 
+                        comment.article.title
+                      ) : 'N/A'
+                    }
+                  </td>
+                  <td className="text-ellipsis-dash" title={comment.content}>
+                    {comment.content.length > 50 ? 
+                      `${comment.content.substring(0, 50)}...` : 
+                      comment.content
+                    }
+                  </td>
+                  <td>
+                    <span className={`badge-dash ${
+                      comment.status === 'pending' ? 'badge-pending-dash' : 
+                      comment.status === 'approved' ? 'badge-approved-dash' : 
+                      'badge-rejected-dash'
+                    }`}>
+                      {comment.status === 'pending' ? 'Pending' : 
+                       comment.status === 'approved' ? 'Approved' : 
+                       'Rejected'}
+                    </span>
+                  </td>
+                  <td>{new Date(comment.created_at).toLocaleDateString('en-US')}</td>
+                  <td>
+                    <div className="table-actions-dash">
+                      <button 
+                        className="table-action-dash table-action-view-dash"
+                        onClick={() => handleViewComment(comment)}
+                        title="View Details"
+                      >
+                        <i className="fas fa-eye"></i>
+                      </button>
+                      
+                      {comment.status === 'pending' && (
+                        <>
+                          <button 
+                            className="table-action-dash table-action-success-dash"
+                            onClick={() => handleApproveComment(comment.id)}
+                            title="Approve Comment"
+                          >
+                            <i className="fas fa-check"></i>
+                          </button>
+                          <button 
+                            className="table-action-dash table-action-danger-dash"
+                            onClick={() => handleRejectComment(comment.id)}
+                            title="Reject Comment"
+                          >
+                            <i className="fas fa-times"></i>
+                          </button>
+                        </>
+                      )}
+                      
+                      <button 
+                        className="table-action-dash table-action-delete-dash"
+                        onClick={() => handleDeleteComment(comment)}
+                        title="Delete Comment"
+                      >
+                        <i className="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </>
+    )}
+  </div>
+</section>
+
+        {/* Messages Section */}
+<section className={`section-dash ${activeSection === 'messages' ? 'active-dash' : ''}`} id="messages">
+  <div className="section-header-dash">
+    <h1 className="section-title-dash">Contact Messages</h1>
+    <button className="btn-dash btn-outline-dash" onClick={fetchMessages}>
+      <i className="fas fa-sync-alt"></i> Refresh
+    </button>
+  </div>
+
+  {/* Messages Stats Cards */}
+  <div className="stats-dash">
+    <div className="stat-card-dash">
+      <div className="stat-card-header-dash">
+        <div className="stat-card-title-dash">Total Messages</div>
+        <div className="stat-card-icon-dash stat-card-icon-blue-dash">
+          <i className="fas fa-envelope"></i>
+        </div>
+      </div>
+      <div className="stat-card-value-dash">{messageStats.total}</div>
+      <div className="stat-card-change-dash stat-card-change-positive-dash">
+        <i className="fas fa-envelope"></i> All messages
+      </div>
+    </div>
+    <div className="stat-card-dash">
+      <div className="stat-card-header-dash">
+        <div className="stat-card-title-dash">New Messages</div>
+        <div className="stat-card-icon-dash stat-card-icon-red-dash">
+          <i className="fas fa-envelope-open"></i>
+        </div>
+      </div>
+      <div className="stat-card-value-dash">{messageStats.new}</div>
+      <div className="stat-card-change-dash stat-card-change-positive-dash">
+        <i className="fas fa-clock"></i> Need review
+      </div>
+    </div>
+    <div className="stat-card-dash">
+      <div className="stat-card-header-dash">
+        <div className="stat-card-title-dash">Reviewed</div>
+        <div className="stat-card-icon-dash stat-card-icon-green-dash">
+          <i className="fas fa-check-circle"></i>
+        </div>
+      </div>
+      <div className="stat-card-value-dash">{messageStats.reviewed}</div>
+      <div className="stat-card-change-dash stat-card-change-positive-dash">
+        <i className="fas fa-check"></i> Completed
+      </div>
+    </div>
+  </div>
+
+  {/* Messages Table */}
+  <div className="table-container-dash">
+    <div className="table-controls-dash">
+      <div className="table-controls-left-dash">
+        <h3>Contact Messages ({messages.length})</h3>
+        <div className="text-muted-dash">
+          {messageStats.new} new messages need review
+        </div>
+      </div>
+      <div className="table-controls-right-dash">
+        <button className="btn-dash btn-outline-dash" onClick={fetchMessages}>
+          <i className="fas fa-sync-alt"></i> Refresh
+        </button>
+      </div>
+    </div>
+    
+    {messagesLoading && (
+      <div className="loading-dash">
+        <i className="fas fa-spinner fa-spin"></i> Loading messages...
+      </div>
+    )}
+    
+    {messagesError && (
+      <div className="error-dash">
+        <i className="fas fa-exclamation-triangle"></i> {messagesError}
+      </div>
+    )}
+    
+    {!messagesLoading && !messagesError && (
+      <>
+        <table className="table-dash">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Subject</th>
+              <th>Message</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {messages.length === 0 ? (
+              <tr>
+                <td colSpan="7" className="text-center-dash">
+                  No messages available
+                </td>
+              </tr>
+            ) : (
+              messages.map((message) => (
+                <tr key={message.id} onClick={(e) => handleTableRowClick(e)}>
+                  <td>
+                    <strong>{message.name}</strong>
+                  </td>
+                  <td>{message.email}</td>
+                  <td className="text-ellipsis-dash" title={message.subject}>
+                    {message.subject}
+                  </td>
+                  <td className="text-ellipsis-dash" title={message.message}>
+                    {message.message.length > 50 ? `${message.message.substring(0, 50)}...` : message.message}
+                  </td>
+                  <td>
+                    <span className={`badge-dash ${
+                      message.status === 'new' ? 'badge-new-dash' : 'badge-reviewed-dash'
+                    }`}>
+                      {message.status === 'new' ? 'New' : 'Reviewed'}
+                    </span>
+                  </td>
+                  <td>{new Date(message.created_at).toLocaleDateString('en-US')}</td>
+                  <td>
+                    <div className="table-actions-dash">
+                      <button 
+                        className="table-action-dash table-action-view-dash"
+                        onClick={() => handleViewMessage(message)}
+                        title="View Details"
+                      >
+                        <i className="fas fa-eye"></i>
+                      </button>
+                      {message.status === 'new' && (
+                        <button 
+                          className="table-action-dash table-action-success-dash"
+                          onClick={() => handleMarkAsReviewed(message.id)}
+                          title="Mark as Reviewed"
+                        >
+                          <i className="fas fa-check"></i>
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </>
+    )}
+  </div>
+</section>
 
           {/* Users Section */}
           <section className={`section-dash ${activeSection === 'users' ? 'active-dash' : ''}`} id="users">
