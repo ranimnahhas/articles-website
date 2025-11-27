@@ -23,7 +23,52 @@
   --gray-light-dash: #2d2d2d;
   --shadow-dash: 0 8px 30px rgba(0, 0, 0, 0.3);
 }
+/* أنماط النماذج */
+.form-group-dash {
+  margin-bottom: 1rem;
+}
 
+.form-label-dash {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-control-dash {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-control-dash:focus {
+  outline: none;
+  border-color: #4361ee;
+  box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
+}
+
+.error-message-dash {
+  color: #e74c3c;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+/* Dark mode support */
+.dark-mode-dash .form-label-dash {
+  color: #e0e0e0;
+}
+
+.dark-mode-dash .form-control-dash {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #e0e0e0;
+}
+
+.dark-mode-dash .form-control-dash:focus {
+  border-color: #4361ee;
+}
 /* Base Styles */
 .dashboard-container * {
   margin: 0;

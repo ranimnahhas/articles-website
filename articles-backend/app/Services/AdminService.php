@@ -122,4 +122,40 @@ class AdminService
             throw new Exception('Authentication service temporarily unavailable');
         }
     }
+    /**
+ * الحصول على معلومات الإدمن الحالي
+ */
+public function getCurrentAdminInfo($adminId): array
+{
+    try {
+        Log::info('جلب معلومات الإدمن', ['admin_id' => $adminId]);
+        
+        $admin = $this->findAdminById($adminId);
+        
+        if (!$admin) {
+            return [
+                'success' => false,
+                'message' => 'الإدمن غير موجود'
+            ];
+        }
+
+        return [
+            'success' => true,
+            'data' => [
+                'id' => $admin->id,
+                'name' => $admin->name,
+                'email' => $admin->email,
+                'created_at' => $admin->created_at,
+                'updated_at' => $admin->updated_at
+            ]
+        ];
+
+    } catch (Exception $e) {
+        Log::error('خطأ في جلب معلومات الإدمن: ' . $e->getMessage(), ['admin_id' => $adminId]);
+        return [
+            'success' => false,
+            'message' => 'فشل في جلب معلومات الإدمن'
+        ];
+    }
+}
 }

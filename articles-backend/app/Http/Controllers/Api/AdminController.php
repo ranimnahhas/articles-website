@@ -375,4 +375,39 @@ public function update(AdminUpdateRequest $request, string $id): JsonResponse
             ], 500);
         }
     }
+    /**
+ * الحصول على معلومات الإدمن الحالي
+ */
+public function getProfile(Request $request): JsonResponse
+{
+    try {
+        $admin = $request->user();
+        
+        if (!$admin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لم يتم العثور على بيانات الإدمن'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $admin->id,
+                'name' => $admin->name,
+                'email' => $admin->email,
+                'created_at' => $admin->created_at->format('Y-m-d H:i:s'),
+                'updated_at' => $admin->updated_at->format('Y-m-d H:i:s')
+            ]
+        ]);
+
+    } catch (Exception $e) {
+        Log::error('خطأ في جلب بروفايل الإدمن: ' . $e->getMessage());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'حدث خطأ في جلب معلومات الإدمن'
+        ], 500);
+    }
+}
 }
