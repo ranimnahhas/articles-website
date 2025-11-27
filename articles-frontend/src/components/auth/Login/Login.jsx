@@ -53,7 +53,7 @@ const Login = () => {
       setApiMessage('');
       
       try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/v1/admin/login`, {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/admin/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -70,6 +70,7 @@ const Login = () => {
         if (data.success) {
           localStorage.setItem('adminToken', data.data.token);
           localStorage.setItem('adminData', JSON.stringify(data.data.admin));
+          localStorage.setItem('adminName', data.data.admin.name);
           
           setApiMessage({
             text: data.message,

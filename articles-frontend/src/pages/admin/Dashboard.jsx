@@ -61,6 +61,9 @@ const Dashboard = () => {
   const [articleImage, setArticleImage] = useState(null);
   const [articleActionLoading, setArticleActionLoading] = useState(false);
 
+  // Get admin name from localStorage
+  const [adminName, setAdminName] = useState('');
+
   // Helper function to get auth token
   const getAuthToken = () => {
     return localStorage.getItem('admin_token') || localStorage.getItem('adminToken');
@@ -761,6 +764,14 @@ const Dashboard = () => {
     setArticleImage(e.target.files[0]);
   };
 
+  // Load admin name from localStorage on component mount
+  useEffect(() => {
+    const storedAdminName = localStorage.getItem('adminName');
+    if (storedAdminName) {
+      setAdminName(storedAdminName);
+    }
+  }, []);
+
   // Fetch data when component loads and when section changes
   useEffect(() => {
     if (activeSection === 'users') {
@@ -835,7 +846,7 @@ const Dashboard = () => {
             <div className="header-user-dash">
             
               <div className="header-user-info-dash">
-                <div className="header-user-name-dash">John Doe</div>
+                <div className="header-user-name-dash">{adminName || 'Administrator'}</div>
                 <div className="header-user-role-dash text-muted-dash">Administrator</div>
               </div>
             </div>
