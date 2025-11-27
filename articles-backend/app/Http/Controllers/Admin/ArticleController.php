@@ -20,34 +20,33 @@ class ArticleController extends Controller
     /**
      * عرض قائمة المقالات
      */
-    public function index(Request $request): JsonResponse
-    {
-        try {
-            $filters = $request->only(['search', 'status', 'category_id']);
-            $articles = $this->articleService->getAllArticles($filters);
-            $stats = $this->articleService->getArticlesStats();
-            $categories = Category::active()->get(['id', 'name']);
+   public function index(Request $request): JsonResponse
+{
+    try {
+        $filters = $request->only(['search', 'status', 'category_id']);
+        $articles = $this->articleService->getAllArticles($filters);
+        $stats = $this->articleService->getArticlesStats();
+        $categories = Category::active()->get(['id', 'name']);
 
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'articles' => $articles,
-                    'stats' => $stats,
-                    'categories' => $categories
-                ],
-                'message' => 'تم جلب المقالات بنجاح'
-            ]);
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'articles' => $articles,
+                'stats' => $stats,
+                'categories' => $categories
+            ],
+            'message' => 'تم جلب المقالات بنجاح'
+        ]);
 
-        } catch (\Exception $e) {
-            \Log::error('Article index error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'حدث خطأ أثناء جلب المقالات'
-            ], 500);
-        }
+    } catch (\Exception $e) {
+        \Log::error('Article index error: ' . $e->getMessage());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'حدث خطأ أثناء جلب المقالات'
+        ], 500);
     }
-
+}
     /**
      * عرض مقال محدد
      */

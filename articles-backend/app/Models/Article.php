@@ -30,12 +30,15 @@ class Article extends Model
         'comments_enabled' => 'boolean', 
     ];
 
+    // ❌ إزالة الـ appends لأننا نريد إرجاع image_url كما هو
+    // protected $appends = ['full_image_url'];
+
     /**
      * العلاقة مع الأدمن
      */
     public function admin(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Admin::class, 'admin_id'); // 🔥 تغيير من User إلى Admin
+        return $this->belongsTo(\App\Models\Admin::class, 'admin_id');
     }
 
     /**
@@ -106,7 +109,8 @@ class Article extends Model
             }
         });
     }
-        /**
+
+    /**
      * العلاقة مع جدول التعليقات
      */
     public function comments(): HasMany
@@ -133,27 +137,12 @@ class Article extends Model
     /**
      * التحقق إذا كانت التعليقات مفعلة للمقالة
      */
-    /**
- * التحقق إذا كانت التعليقات مفعلة للمقالة
- */
-public function isCommentsEnabled(): bool
-{
-    \Log::info('فحص isCommentsEnabled:', [
-        'comments_enabled' => $this->comments_enabled,
-        'status' => $this->status,
-        'published_at' => $this->published_at,
-        'now' => now(),
-        'is_published' => $this->status === 'published' && $this->published_at <= now()
-    ]);
-    
-    // المقالة يجب أن تكون منشورة والتعليقات مفعلة
-    $result = $this->comments_enabled && 
-              $this->status === 'published' && 
-              $this->published_at <= now();
-    
-    \Log::info('نتيجة isCommentsEnabled: ' . ($result ? 'نعم' : 'لا'));
-    return $result;
-}
+    public function isCommentsEnabled(): bool
+    {
+        return $this->comments_enabled && 
+            $this->status === 'published' && 
+            $this->published_at <= now();
+    }
 
     /**
      * تفعيل التعليقات للمقالة
@@ -170,5 +159,4 @@ public function isCommentsEnabled(): bool
     {
         $this->update(['comments_enabled' => false]);
     }
-
 }

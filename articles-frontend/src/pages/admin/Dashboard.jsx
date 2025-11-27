@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import MDEditor from '@uiw/react-md-editor';
 import './Dashboard.css';
 import API_CONFIG from '../../config';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarActive, setMobileSidebarActive] = useState(false);
@@ -42,7 +45,6 @@ const Dashboard = () => {
     total: 0,
     published: 0,
     draft: 0,
-    archived: 0,
     total_views: 0
   });
   const [categories, setCategories] = useState([]);
@@ -100,9 +102,31 @@ const Dashboard = () => {
   // Get admin name from localStorage
   const [adminName, setAdminName] = useState('');
 
-  // Helper function to get auth token
+  // Helper function to get complete image URL
+  const getImageUrl = (imageUrl) => {
+    if (!imageUrl) return '/images/placeholder.jpg';
+    
+    if (imageUrl.startsWith('http')) {
+      return imageUrl;
+    } else if (imageUrl.startsWith('storage/')) {
+      return `${API_CONFIG.STORAGE_URL}/${imageUrl}`;
+    } else if (imageUrl.startsWith('/storage')) {
+      return `${API_CONFIG.STORAGE_URL}${imageUrl}`;
+    } else {
+      return `${API_CONFIG.STORAGE_URL}/storage/${imageUrl}`;
+    }
+  };
+
+  // Helper function to get auth token with redirection
   const getAuthToken = () => {
-    return localStorage.getItem('admin_token') || localStorage.getItem('adminToken');
+    const token = localStorage.getItem('admin_token') || localStorage.getItem('adminToken');
+    
+    if (!token) {
+      navigate('/admin/login');
+      return null;
+    }
+    
+    return token;
   };
 
   // Handle server responses
@@ -117,6 +141,19 @@ const Dashboard = () => {
     }
   };
 
+  // Check authentication on component mount
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!token) {
+      return;
+    }
+    
+    const storedAdminName = localStorage.getItem('adminName');
+    if (storedAdminName) {
+      setAdminName(storedAdminName);
+    }
+  }, [navigate]);
+
   // Fetch admins data with pagination
   const fetchAdmins = async (page = 1, perPage = pagination.per_page) => {
     try {
@@ -125,7 +162,7 @@ const Dashboard = () => {
       const token = getAuthToken();
       
       if (!token) {
-        throw new Error('Authentication token not found');
+        return;
       }
 
       const response = await fetch(`${API_CONFIG.BASE_URL}/admins?page=${page}&per_page=${perPage}`, {
@@ -170,7 +207,6 @@ const Dashboard = () => {
       setActionLoading(true);
       const token = getAuthToken();
       if (!token) {
-        alert('Authentication token not found');
         return;
       }
 
@@ -212,17 +248,14 @@ const Dashboard = () => {
       setActionLoading(true);
       const token = getAuthToken();
       if (!token) {
-        alert('Authentication token not found');
         return;
       }
 
-      // Create update data (don't send password if empty)
       const updateData = {
         name: formData.name,
         email: formData.email
       };
 
-      // Add password only if entered
       if (formData.password) {
         updateData.password = formData.password;
         updateData.password_confirmation = formData.password_confirmation;
@@ -295,7 +328,6 @@ const Dashboard = () => {
       ...prev,
       [name]: value
     }));
-    // Clear error when typing
     if (formErrors[name]) {
       setFormErrors(prev => ({
         ...prev,
@@ -334,7 +366,6 @@ const Dashboard = () => {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
 
-    // First page button
     pages.push(
       <button
         key="first"
@@ -347,7 +378,6 @@ const Dashboard = () => {
       </button>
     );
 
-    // Previous button
     pages.push(
       <button
         key="prev"
@@ -360,7 +390,6 @@ const Dashboard = () => {
       </button>
     );
 
-    // First page and ellipsis
     if (startPage > 1) {
       pages.push(
         <button
@@ -380,7 +409,6 @@ const Dashboard = () => {
       }
     }
 
-    // Page numbers
     for (let i = startPage; i <= endPage; i++) {
       pages.push(
         <button
@@ -393,7 +421,6 @@ const Dashboard = () => {
       );
     }
 
-    // Last page and ellipsis
     if (endPage < pagination.last_page) {
       if (endPage < pagination.last_page - 1) {
         pages.push(
@@ -413,7 +440,6 @@ const Dashboard = () => {
       );
     }
 
-    // Next button
     pages.push(
       <button
         key="next"
@@ -426,7 +452,6 @@ const Dashboard = () => {
       </button>
     );
 
-    // Last page button
     pages.push(
       <button
         key="last"
@@ -452,7 +477,7 @@ const Dashboard = () => {
       const token = getAuthToken();
       
       if (!token) {
-        throw new Error('Authentication token not found');
+        return;
       }
 
       const response = await fetch(`${API_CONFIG.BASE_URL}/articles`, {
@@ -485,6 +510,21 @@ const Dashboard = () => {
     }
   };
 
+  // Handle article content change for MDEditor
+  const handleArticleContentChange = (content) => {
+    setArticleFormData(prev => ({
+      ...prev,
+      content: content || ''
+    }));
+    
+    if (articleFormErrors.content) {
+      setArticleFormErrors(prev => ({
+        ...prev,
+        content: ''
+      }));
+    }
+  };
+
   // Create new article
   const handleAddArticle = async (e) => {
     e.preventDefault();
@@ -493,7 +533,6 @@ const Dashboard = () => {
       setArticleActionLoading(true);
       const token = getAuthToken();
       if (!token) {
-        alert('Authentication token not found');
         return;
       }
 
@@ -556,31 +595,31 @@ const Dashboard = () => {
       setArticleActionLoading(true);
       const token = getAuthToken();
       if (!token) {
-        alert('Authentication token not found - please login again');
         return;
       }
 
-      const requestData = {
-        title: articleFormData.title,
-        category_id: parseInt(articleFormData.category_id),
-        excerpt: articleFormData.excerpt || '',
-        content: articleFormData.content,
-        status: articleFormData.status,
-        _method: 'PUT'
-      };
-
+      const formDataToSend = new FormData();
+      formDataToSend.append('title', articleFormData.title);
+      formDataToSend.append('category_id', articleFormData.category_id);
+      formDataToSend.append('excerpt', articleFormData.excerpt || '');
+      formDataToSend.append('content', articleFormData.content);
+      formDataToSend.append('status', articleFormData.status);
+      formDataToSend.append('_method', 'PUT');
+      
       if (articleFormData.published_at) {
-        requestData.published_at = articleFormData.published_at;
+        formDataToSend.append('published_at', articleFormData.published_at);
+      }
+
+      if (articleImage) {
+        formDataToSend.append('image', articleImage);
       }
 
       const response = await fetch(`${API_CONFIG.BASE_URL}/articles/${editingArticle.id}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
         },
-        body: JSON.stringify(requestData)
+        body: formDataToSend
       });
 
       const result = await handleResponse(response);
@@ -627,7 +666,6 @@ const Dashboard = () => {
       setArticleActionLoading(true);
       const token = getAuthToken();
       if (!token) {
-        alert('Authentication token not found');
         return;
       }
 
@@ -662,7 +700,6 @@ const Dashboard = () => {
       setArticleActionLoading(true);
       const token = getAuthToken();
       if (!token) {
-        alert('Authentication token not found');
         return;
       }
 
@@ -697,7 +734,6 @@ const Dashboard = () => {
       setArticleActionLoading(true);
       const token = getAuthToken();
       if (!token) {
-        alert('Authentication token not found');
         return;
       }
 
@@ -747,12 +783,14 @@ const Dashboard = () => {
 
   // View image in modal
   const handleViewImage = (imageUrl) => {
-    if (imageUrl) {
-      setSelectedImage(imageUrl);
-      setShowImageModal(true);
-    } else {
+    if (!imageUrl) {
       alert('No image available for this article');
+      return;
     }
+
+    const fullImageUrl = getImageUrl(imageUrl);
+    setSelectedImage(fullImageUrl);
+    setShowImageModal(true);
   };
 
   // Close content modal
@@ -823,7 +861,6 @@ const Dashboard = () => {
       ...prev,
       [name]: value
     }));
-    // Clear error when typing
     if (articleFormErrors[name]) {
       setArticleFormErrors(prev => ({
         ...prev,
@@ -847,7 +884,7 @@ const Dashboard = () => {
       const token = getAuthToken();
       
       if (!token) {
-        throw new Error('Authentication token not found');
+        return;
       }
 
       const response = await fetch(`${API_CONFIG.BASE_URL}/categories?page=${page}&per_page=${perPage}`, {
@@ -899,7 +936,6 @@ const Dashboard = () => {
       setCategoryActionLoading(true);
       const token = getAuthToken();
       if (!token) {
-        alert('Authentication token not found');
         return;
       }
 
@@ -947,7 +983,6 @@ const Dashboard = () => {
       setCategoryActionLoading(true);
       const token = getAuthToken();
       if (!token) {
-        alert('Authentication token not found');
         return;
       }
 
@@ -998,7 +1033,6 @@ const Dashboard = () => {
       setCategoryActionLoading(true);
       const token = getAuthToken();
       if (!token) {
-        alert('Authentication token not found');
         return;
       }
 
@@ -1062,7 +1096,6 @@ const Dashboard = () => {
       ...prev,
       [name]: value
     }));
-    // Clear error when typing
     if (categoryFormErrors[name]) {
       setCategoryFormErrors(prev => ({
         ...prev,
@@ -1101,7 +1134,6 @@ const Dashboard = () => {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
 
-    // First page button
     pages.push(
       <button
         key="first"
@@ -1114,7 +1146,6 @@ const Dashboard = () => {
       </button>
     );
 
-    // Previous button
     pages.push(
       <button
         key="prev"
@@ -1127,7 +1158,6 @@ const Dashboard = () => {
       </button>
     );
 
-    // First page and ellipsis
     if (startPage > 1) {
       pages.push(
         <button
@@ -1147,7 +1177,6 @@ const Dashboard = () => {
       }
     }
 
-    // Page numbers
     for (let i = startPage; i <= endPage; i++) {
       pages.push(
         <button
@@ -1160,7 +1189,6 @@ const Dashboard = () => {
       );
     }
 
-    // Last page and ellipsis
     if (endPage < categoriesPagination.last_page) {
       if (endPage < categoriesPagination.last_page - 1) {
         pages.push(
@@ -1180,7 +1208,6 @@ const Dashboard = () => {
       );
     }
 
-    // Next button
     pages.push(
       <button
         key="next"
@@ -1193,7 +1220,6 @@ const Dashboard = () => {
       </button>
     );
 
-    // Last page button
     pages.push(
       <button
         key="last"
@@ -1272,6 +1298,14 @@ const Dashboard = () => {
     }
   };
 
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminName');
+    navigate('/admin/login');
+  };
+
   return (
     <div className={`dashboard-container ${darkMode ? 'dark-mode-dash' : ''}`}>
       <div className="dashboard-dash">
@@ -1289,6 +1323,9 @@ const Dashboard = () => {
           <div className="header-actions-dash">
             <button className="header-action-btn-dash theme-toggle-dash" onClick={toggleDarkMode}>
               <i className={darkMode ? "fas fa-sun" : "fas fa-moon"}></i>
+            </button>
+            <button className="header-action-btn-dash logout-btn-dash" onClick={handleLogout}>
+              <i className="fas fa-sign-out-alt"></i>
             </button>
            
             <div className="header-user-dash">
@@ -1454,14 +1491,12 @@ const Dashboard = () => {
                 </div>
               </div>
               
-              {/* Loading State */}
               {articlesLoading && (
                 <div className="loading-dash">
                   <i className="fas fa-spinner fa-spin"></i> Loading articles...
                 </div>
               )}
               
-              {/* Error State */}
               {articlesError && (
                 <div className="error-dash">
                   <i className="fas fa-exclamation-triangle"></i> {articlesError}
@@ -1473,7 +1508,7 @@ const Dashboard = () => {
                   <table className="table-dash">
                     <thead>
                       <tr>
-                        <th>Title '(Click on Title to see more information)'</th>
+                        <th>Title (Click on Title to see more information)</th>
                         <th>Category</th>
                         <th>Status</th>
                         <th>Author</th>
@@ -1510,8 +1545,21 @@ const Dashboard = () => {
                           <td>
                             <div className="table-actions-dash">
                               <button 
+                                className="table-action-dash table-action-view-dash"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewImage(article.image_url);
+                                }}
+                                title="View Image"
+                              >
+                                <i className="fas fa-image"></i>
+                              </button>
+                              <button 
                                 className="table-action-dash table-action-edit-dash"
-                                onClick={() => openEditArticleModal(article)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditArticleModal(article);
+                                }}
                                 title="Edit Article"
                               >
                                 <i className="fas fa-edit"></i>
@@ -1519,7 +1567,10 @@ const Dashboard = () => {
                               {article.status === 'published' ? (
                                 <button 
                                   className="table-action-dash table-action-warning-dash"
-                                  onClick={() => handleUnpublishArticle(article)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUnpublishArticle(article);
+                                  }}
                                   title="Unpublish Article"
                                 >
                                   <i className="fas fa-times"></i>
@@ -1527,7 +1578,10 @@ const Dashboard = () => {
                               ) : (
                                 <button 
                                   className="table-action-dash table-action-success-dash"
-                                  onClick={() => handlePublishArticle(article)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePublishArticle(article);
+                                  }}
                                   title="Publish Article"
                                 >
                                   <i className="fas fa-check"></i>
@@ -1535,8 +1589,12 @@ const Dashboard = () => {
                               )}
                               <button 
                                 className="table-action-dash table-action-delete-dash"
-                                onClick={() => handleDeleteArticle(article)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteArticle(article);
+                                }}
                                 title="Delete Article"
+                                disabled={articleActionLoading}
                               >
                                 <i className="fas fa-trash"></i>
                               </button>
@@ -1573,14 +1631,12 @@ const Dashboard = () => {
                 </div>
               </div>
               
-              {/* Loading State */}
               {articlesLoading && (
                 <div className="loading-dash">
                   <i className="fas fa-spinner fa-spin"></i> Loading articles...
                 </div>
               )}
               
-              {/* Error State */}
               {articlesError && (
                 <div className="error-dash">
                   <i className="fas fa-exclamation-triangle"></i> {articlesError}
@@ -1629,8 +1685,21 @@ const Dashboard = () => {
                           <td>
                             <div className="table-actions-dash">
                               <button 
+                                className="table-action-dash table-action-view-dash"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewImage(article.image_url);
+                                }}
+                                title="View Image"
+                              >
+                                <i className="fas fa-image"></i>
+                              </button>
+                              <button 
                                 className="table-action-dash table-action-edit-dash"
-                                onClick={() => openEditArticleModal(article)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditArticleModal(article);
+                                }}
                                 title="Edit Article"
                               >
                                 <i className="fas fa-edit"></i>
@@ -1638,24 +1707,36 @@ const Dashboard = () => {
                               {article.status === 'published' ? (
                                 <button 
                                   className="table-action-dash table-action-warning-dash"
-                                  onClick={() => handleUnpublishArticle(article)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUnpublishArticle(article);
+                                  }}
                                   title="Unpublish Article"
+                                  disabled={articleActionLoading}
                                 >
                                   <i className="fas fa-times"></i>
                                 </button>
                               ) : (
                                 <button 
                                   className="table-action-dash table-action-success-dash"
-                                  onClick={() => handlePublishArticle(article)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePublishArticle(article);
+                                  }}
                                   title="Publish Article"
+                                  disabled={articleActionLoading}
                                 >
                                   <i className="fas fa-check"></i>
                                 </button>
                               )}
                               <button 
                                 className="table-action-dash table-action-delete-dash"
-                                onClick={() => handleDeleteArticle(article)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteArticle(article);
+                                }}
                                 title="Delete Article"
+                                disabled={articleActionLoading}
                               >
                                 <i className="fas fa-trash"></i>
                               </button>
@@ -1710,21 +1791,18 @@ const Dashboard = () => {
                 </div>
               </div>
               
-              {/* Loading State */}
               {categoriesLoading && (
                 <div className="loading-dash">
                   <i className="fas fa-spinner fa-spin"></i> Loading categories...
                 </div>
               )}
               
-              {/* Error State */}
               {categoriesError && (
                 <div className="error-dash">
                   <i className="fas fa-exclamation-triangle"></i> {categoriesError}
                 </div>
               )}
               
-              {/* Categories Table */}
               {!categoriesLoading && !categoriesError && (
                 <>
                   <table className="table-dash">
@@ -1777,6 +1855,7 @@ const Dashboard = () => {
                                   className="table-action-dash table-action-delete-dash"
                                   onClick={() => handleDeleteCategory(category)}
                                   title="Delete Category"
+                                  disabled={categoryActionLoading}
                                 >
                                   <i className="fas fa-trash"></i>
                                 </button>
@@ -1788,12 +1867,10 @@ const Dashboard = () => {
                     </tbody>
                   </table>
                   
-                  {/* Pagination */}
                   <div className="pagination-dash">
                     {renderCategoriesPagination()}
                   </div>
 
-                  {/* Pagination Info */}
                   <div className="pagination-info-dash text-center-dash text-muted-dash">
                     Page {categoriesPagination.current_page} of {categoriesPagination.last_page} - {categoriesPagination.total} total categories
                   </div>
@@ -1868,21 +1945,18 @@ const Dashboard = () => {
                 </div>
               </div>
               
-              {/* Loading State */}
               {loading && (
                 <div className="loading-dash">
                   <i className="fas fa-spinner fa-spin"></i> Loading data...
                 </div>
               )}
               
-              {/* Error State */}
               {error && (
                 <div className="error-dash">
                   <i className="fas fa-exclamation-triangle"></i> {error}
                 </div>
               )}
               
-              {/* Users Table */}
               {!loading && !error && (
                 <>
                   <table className="table-dash">
@@ -1931,12 +2005,10 @@ const Dashboard = () => {
                     </tbody>
                   </table>
                   
-                  {/* Pagination */}
                   <div className="pagination-dash">
                     {renderPagination()}
                   </div>
 
-                  {/* Pagination Info */}
                   <div className="pagination-info-dash text-center-dash text-muted-dash">
                     Page {pagination.current_page} of {pagination.last_page} - {pagination.total} total users
                   </div>
@@ -2000,21 +2072,31 @@ const Dashboard = () => {
                 <div className="detail-row-dash">
                   <div className="detail-label-dash">Content:</div>
                   <div className="detail-value-dash content-preview-dash">
-                    {selectedArticle.content || 'No content available'}
+                    <div data-color-mode="light">
+                      <MDEditor.Markdown source={selectedArticle.content || 'No content available'} />
+                    </div>
                   </div>
                 </div>
                 <div className="detail-row-dash">
                   <div className="detail-label-dash">Image:</div>
                   <div className="detail-value-dash">
                     {selectedArticle.image_url ? (
-                      <img 
-                        src={`${API_CONFIG.BASE_URL}${selectedArticle.image_url}`} 
-                        alt="Article" 
-                        className="article-image-preview-dash"
-                        onError={(e) => {
-                          e.target.src = '/images/placeholder.jpg';
-                        }}
-                      />
+                      <div>
+                        <img 
+                          src={getImageUrl(selectedArticle.image_url)} 
+                          alt="Article" 
+                          className="article-image-preview-dash"
+                          onError={(e) => {
+                            e.target.src = '/images/placeholder.jpg';
+                          }}
+                        />
+                        <button 
+                          className="btn-dash btn-outline-dash mt-1-dash"
+                          onClick={() => handleViewImage(selectedArticle.image_url)}
+                        >
+                          <i className="fas fa-expand"></i> View Full Image
+                        </button>
+                      </div>
                     ) : (
                       <span className="text-muted-dash">No image</span>
                     )}
@@ -2066,7 +2148,9 @@ const Dashboard = () => {
           </div>
           <div className="modal-body-dash">
             <div className="content-view-dash">
-              {selectedContent || 'No content available'}
+              <div data-color-mode="light">
+                <MDEditor.Markdown source={selectedContent || 'No content available'} />
+              </div>
             </div>
           </div>
           <div className="modal-footer-dash">
@@ -2088,14 +2172,21 @@ const Dashboard = () => {
           </div>
           <div className="modal-body-dash">
             <div className="image-view-dash">
-              <img 
-                src={`${API_CONFIG.BASE_URL}${selectedImage}`} 
-                alt="Article" 
-                className="article-image-dash"
-                onError={(e) => {
-                  e.target.src = '/images/placeholder.jpg';
-                }}
-              />
+              {selectedImage ? (
+                <img 
+                  src={selectedImage} 
+                  alt="Article" 
+                  className="article-image-dash"
+                  onError={(e) => {
+                    e.target.src = '/images/placeholder.jpg';
+                  }}
+                />
+              ) : (
+                <div className="no-image-dash">
+                  <i className="fas fa-image"></i>
+                  <p>No image available</p>
+                </div>
+              )}
             </div>
           </div>
           <div className="modal-footer-dash">
@@ -2108,7 +2199,7 @@ const Dashboard = () => {
 
       {/* Add Article Modal */}
       <div className={`modal-dash ${showAddArticleModal ? 'active-dash' : ''}`}>
-        <div className="modal-content-dash" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-content-dash modal-content-large-dash" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header-dash">
             <h2 className="modal-title-dash">Add New Article</h2>
             <button className="modal-close-dash" onClick={closeArticleModals}>
@@ -2162,20 +2253,19 @@ const Dashboard = () => {
               
               <div className="form-group-dash">
                 <label className="form-label-dash">Content</label>
-                <textarea 
-                  className="form-control-dash" 
-                  name="content"
-                  value={articleFormData.content}
-                  onChange={handleArticleFormChange}
-                  rows="6"
-                  required
-                  placeholder="Article content"
-                />
+                <div className="editor-container-dash">
+                  <MDEditor
+                    value={articleFormData.content}
+                    onChange={handleArticleContentChange}
+                    height={300}
+                    preview="edit"
+                  />
+                </div>
                 {articleFormErrors.content && <div className="error-message-dash">{articleFormErrors.content[0]}</div>}
               </div>
               
               <div className="form-group-dash">
-                <label className="form-label-dash">Image</label>
+                <label className="form-label-dash">Featured Image</label>
                 <input 
                   type="file" 
                   className="form-control-dash" 
@@ -2232,7 +2322,7 @@ const Dashboard = () => {
 
       {/* Edit Article Modal */}
       <div className={`modal-dash ${showEditArticleModal ? 'active-dash' : ''}`}>
-        <div className="modal-content-dash" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-content-dash modal-content-large-dash" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header-dash">
             <h2 className="modal-title-dash">Edit Article</h2>
             <button className="modal-close-dash" onClick={closeArticleModals}>
@@ -2286,20 +2376,19 @@ const Dashboard = () => {
               
               <div className="form-group-dash">
                 <label className="form-label-dash">Content</label>
-                <textarea 
-                  className="form-control-dash" 
-                  name="content"
-                  value={articleFormData.content}
-                  onChange={handleArticleFormChange}
-                  rows="6"
-                  required
-                  placeholder="Article content"
-                />
+                <div className="editor-container-dash">
+                  <MDEditor
+                    value={articleFormData.content}
+                    onChange={handleArticleContentChange}
+                    height={300}
+                    preview="edit"
+                  />
+                </div>
                 {articleFormErrors.content && <div className="error-message-dash">{articleFormErrors.content[0]}</div>}
               </div>
               
               <div className="form-group-dash">
-                <label className="form-label-dash">Image</label>
+                <label className="form-label-dash">Featured Image</label>
                 <input 
                   type="file" 
                   className="form-control-dash" 

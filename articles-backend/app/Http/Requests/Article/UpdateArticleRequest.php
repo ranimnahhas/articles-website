@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\Category;
+namespace App\Http\Requests\Article;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateCategoryRequest extends FormRequest
+class UpdateArticleRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -13,18 +13,14 @@ class UpdateCategoryRequest extends FormRequest
 
     public function rules(): array
     {
-        // تجاهل التحقق من التكامل مؤقتاً
         return [
-            'name' => 'required|string|max:255',
-            'is_active' => 'sometimes|boolean'
-        ];
-    }
-
-    public function messages(): array
-    {
-        return [
-            'name.required' => 'اسم التصنيف مطلوب',
-            'name.max' => 'اسم التصنيف يجب ألا يتجاوز 255 حرف'
+            'title' => 'sometimes|required|string|max:255',
+            'category_id' => 'sometimes|required|exists:categories,id',
+            'excerpt' => 'nullable|string|max:500',
+            'content' => 'sometimes|required|string',
+            'status' => 'sometimes|required|in:draft,published,archived',
+            'published_at' => 'nullable|date',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ];
     }
 }

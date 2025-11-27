@@ -729,6 +729,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
+  margin-top: -2rem;
 }
 
 /* Form Elements */
@@ -1870,4 +1871,117 @@ textarea.form-control-dash {
   .modal-close-dash {
     display: none;
   }
+}
+/* React Quill Editor Styles */
+.editor-container-dash {
+  margin-bottom: 1rem;
+}
+
+.quill-editor-dash {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.quill-editor-dash .ql-toolbar {
+  border-top: 1px solid #e2e8f0;
+  border-left: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: none;
+  background: #f8fafc;
+}
+
+.quill-editor-dash .ql-container {
+  border-bottom: 1px solid #e2e8f0;
+  border-left: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  border-top: none;
+  font-size: 14px;
+  min-height: 200px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.quill-editor-dash .ql-editor {
+  min-height: 200px;
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+/* Dark mode styles for Quill */
+.dark-mode-dash .quill-editor-dash .ql-toolbar {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+.dark-mode-dash .quill-editor-dash .ql-toolbar .ql-stroke {
+  stroke: #f9fafb;
+}
+
+.dark-mode-dash .quill-editor-dash .ql-toolbar .ql-fill {
+  fill: #f9fafb;
+}
+
+.dark-mode-dash .quill-editor-dash .ql-toolbar .ql-picker {
+  color: #f9fafb;
+}
+
+.dark-mode-dash .quill-editor-dash .ql-container {
+  background: #1f2937;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+.dark-mode-dash .quill-editor-dash .ql-editor.ql-blank::before {
+  color: #9ca3af;
+}
+
+/* Make modal larger for editor */
+.modal-content-large-dash {
+  max-width: 900px;
+  width: 95%;
+}
+
+/* Content preview styles */
+.content-preview-dash {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.dark-mode-dash .content-preview-dash {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+/* Disabled state for buttons */
+.btn-dash:disabled,
+.table-action-dash:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Loading states */
+.loading-dash {
+  text-align: center;
+  padding: 20px;
+  color: #6b7280;
+}
+
+.error-dash {
+  text-align: center;
+  padding: 20px;
+  color: #ef4444;
+  background: #fef2f2;
+  border-radius: 6px;
+  margin: 10px 0;
+}
+
+.dark-mode-dash .error-dash {
+  background: #7f1d1d;
+  color: #fca5a5;
 }
