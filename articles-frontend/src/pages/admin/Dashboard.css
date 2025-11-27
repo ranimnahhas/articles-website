@@ -988,3 +988,6 @@ textarea.form-control-dash {
 .selected-dash {
   background: rgba(67, 97, 238, 0.1) !important;
 }
+.sidebar-toggle-dash{
+  display: none;
+}

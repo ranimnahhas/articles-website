@@ -61,6 +61,31 @@ const Dashboard = () => {
   const [articleImage, setArticleImage] = useState(null);
   const [articleActionLoading, setArticleActionLoading] = useState(false);
 
+  // States for Categories
+  const [categoriesData, setCategoriesData] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [categoriesError, setCategoriesError] = useState(null);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
+  const [categoryFormData, setCategoryFormData] = useState({
+    name: '',
+    slug: '',
+    status: 'active'
+  });
+  const [categoryFormErrors, setCategoryFormErrors] = useState({});
+  const [categoryActionLoading, setCategoryActionLoading] = useState(false);
+
+  // Categories Pagination
+  const [categoriesPagination, setCategoriesPagination] = useState({
+    current_page: 1,
+    last_page: 1,
+    per_page: 10,
+    total: 0,
+    from: 0,
+    to: 0
+  });
+
   // Get admin name from localStorage
   const [adminName, setAdminName] = useState('');
 
@@ -764,6 +789,339 @@ const Dashboard = () => {
     setArticleImage(e.target.files[0]);
   };
 
+  // ==================== Categories Functions ====================
+
+  // Fetch categories with pagination
+  const fetchCategories = async (page = 1, perPage = categoriesPagination.per_page) => {
+    try {
+      setCategoriesLoading(true);
+      setCategoriesError(null);
+      const token = getAuthToken();
+      
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/categories?page=${page}&per_page=${perPage}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch categories: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await handleResponse(response);
+      
+      if (result.success) {
+        setCategoriesData(result.data.categories.data);
+        setCategoriesPagination({
+          current_page: result.data.categories.current_page,
+          last_page: result.data.categories.last_page,
+          per_page: result.data.categories.per_page,
+          total: result.data.categories.total,
+          from: result.data.categories.from,
+          to: result.data.categories.to
+        });
+      } else {
+        setCategoriesError(result.message || 'Unknown error occurred');
+      }
+    } catch (err) {
+      setCategoriesError(err.message);
+      console.error('Error fetching categories:', err);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
+  // View category details
+  const handleViewCategory = (category) => {
+    alert(`Category Details:\nName: ${category.name}\nSlug: ${category.slug}\nStatus: ${category.is_active ? 'Active' : 'Inactive'}\nCreated At: ${new Date(category.created_at).toLocaleDateString('en-US')}`);
+  };
+
+  // Add new category
+  const handleAddCategory = async (e) => {
+    e.preventDefault();
+    
+    try {
+      setCategoryActionLoading(true);
+      const token = getAuthToken();
+      if (!token) {
+        alert('Authentication token not found');
+        return;
+      }
+
+      const updateData = {
+        name: categoryFormData.name,
+        slug: categoryFormData.slug,
+        is_active: categoryFormData.status === 'active'
+      };
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/categories`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+      });
+
+      const result = await handleResponse(response);
+
+      if (result.success) {
+        alert('Category added successfully');
+        setShowAddCategoryModal(false);
+        setCategoryFormData({ name: '', slug: '', status: 'active' });
+        setCategoryFormErrors({});
+        fetchCategories(categoriesPagination.current_page, categoriesPagination.per_page);
+      } else {
+        setCategoryFormErrors(result.errors || {});
+        alert(result.message || 'Error occurred during addition');
+      }
+    } catch (err) {
+      alert('Server connection error: ' + err.message);
+      console.error('Error adding category:', err);
+    } finally {
+      setCategoryActionLoading(false);
+    }
+  };
+
+  // Edit category
+  const handleEditCategory = async (e) => {
+    e.preventDefault();
+    
+    try {
+      setCategoryActionLoading(true);
+      const token = getAuthToken();
+      if (!token) {
+        alert('Authentication token not found');
+        return;
+      }
+
+      const updateData = {
+        name: categoryFormData.name,
+        slug: categoryFormData.slug,
+        is_active: categoryFormData.status === 'active'
+      };
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/categories/${editingCategory.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+      });
+
+      const result = await handleResponse(response);
+
+      if (result.success) {
+        alert('Category updated successfully');
+        setShowEditCategoryModal(false);
+        setEditingCategory(null);
+        setCategoryFormData({ name: '', slug: '', status: 'active' });
+        setCategoryFormErrors({});
+        fetchCategories(categoriesPagination.current_page, categoriesPagination.per_page);
+      } else {
+        setCategoryFormErrors(result.errors || {});
+        alert(result.message || 'Error occurred during update');
+      }
+    } catch (err) {
+      alert('Server connection error: ' + err.message);
+      console.error('Error editing category:', err);
+    } finally {
+      setCategoryActionLoading(false);
+    }
+  };
+
+  // Open add category modal
+  const openAddCategoryModal = () => {
+    setShowAddCategoryModal(true);
+    setCategoryFormData({ name: '', slug: '', status: 'active' });
+    setCategoryFormErrors({});
+  };
+
+  // Open edit category modal
+  const openEditCategoryModal = (category) => {
+    setEditingCategory(category);
+    setCategoryFormData({
+      name: category.name,
+      slug: category.slug,
+      status: category.is_active ? 'active' : 'inactive'
+    });
+    setCategoryFormErrors({});
+    setShowEditCategoryModal(true);
+  };
+
+  // Close category modals
+  const closeCategoryModals = () => {
+    setShowAddCategoryModal(false);
+    setShowEditCategoryModal(false);
+    setEditingCategory(null);
+    setCategoryFormData({ name: '', slug: '', status: 'active' });
+    setCategoryFormErrors({});
+  };
+
+  // Handle category form changes
+  const handleCategoryFormChange = (e) => {
+    const { name, value } = e.target;
+    setCategoryFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear error when typing
+    if (categoryFormErrors[name]) {
+      setCategoryFormErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  // Categories Pagination functions
+  const handleCategoriesPageChange = (page) => {
+    if (page >= 1 && page <= categoriesPagination.last_page) {
+      fetchCategories(page, categoriesPagination.per_page);
+    }
+  };
+
+  const handleCategoriesPerPageChange = (e) => {
+    const newPerPage = parseInt(e.target.value);
+    fetchCategories(1, newPerPage);
+  };
+
+  const handleCategoriesFirstPage = () => {
+    handleCategoriesPageChange(1);
+  };
+
+  const handleCategoriesLastPage = () => {
+    handleCategoriesPageChange(categoriesPagination.last_page);
+  };
+
+  const renderCategoriesPagination = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, categoriesPagination.current_page - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(categoriesPagination.last_page, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    // First page button
+    pages.push(
+      <button
+        key="first"
+        className={`pagination-item-dash ${categoriesPagination.current_page === 1 ? 'disabled-dash' : ''}`}
+        onClick={handleCategoriesFirstPage}
+        disabled={categoriesPagination.current_page === 1}
+        title="First Page"
+      >
+        <i className="fas fa-angle-double-left"></i>
+      </button>
+    );
+
+    // Previous button
+    pages.push(
+      <button
+        key="prev"
+        className={`pagination-item-dash ${categoriesPagination.current_page === 1 ? 'disabled-dash' : ''}`}
+        onClick={() => handleCategoriesPageChange(categoriesPagination.current_page - 1)}
+        disabled={categoriesPagination.current_page === 1}
+        title="Previous Page"
+      >
+        <i className="fas fa-chevron-left"></i>
+      </button>
+    );
+
+    // First page and ellipsis
+    if (startPage > 1) {
+      pages.push(
+        <button
+          key={1}
+          className={`pagination-item-dash ${1 === categoriesPagination.current_page ? 'active-dash' : ''}`}
+          onClick={() => handleCategoriesPageChange(1)}
+        >
+          1
+        </button>
+      );
+      if (startPage > 2) {
+        pages.push(
+          <span key="ellipsis1" className="pagination-ellipsis-dash">
+            ...
+          </span>
+        );
+      }
+    }
+
+    // Page numbers
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <button
+          key={i}
+          className={`pagination-item-dash ${i === categoriesPagination.current_page ? 'active-dash' : ''}`}
+          onClick={() => handleCategoriesPageChange(i)}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    // Last page and ellipsis
+    if (endPage < categoriesPagination.last_page) {
+      if (endPage < categoriesPagination.last_page - 1) {
+        pages.push(
+          <span key="ellipsis2" className="pagination-ellipsis-dash">
+            ...
+          </span>
+        );
+      }
+      pages.push(
+        <button
+          key={categoriesPagination.last_page}
+          className={`pagination-item-dash ${categoriesPagination.last_page === categoriesPagination.current_page ? 'active-dash' : ''}`}
+          onClick={() => handleCategoriesPageChange(categoriesPagination.last_page)}
+        >
+          {categoriesPagination.last_page}
+        </button>
+      );
+    }
+
+    // Next button
+    pages.push(
+      <button
+        key="next"
+        className={`pagination-item-dash ${categoriesPagination.current_page === categoriesPagination.last_page ? 'disabled-dash' : ''}`}
+        onClick={() => handleCategoriesPageChange(categoriesPagination.current_page + 1)}
+        disabled={categoriesPagination.current_page === categoriesPagination.last_page}
+        title="Next Page"
+      >
+        <i className="fas fa-chevron-right"></i>
+      </button>
+    );
+
+    // Last page button
+    pages.push(
+      <button
+        key="last"
+        className={`pagination-item-dash ${categoriesPagination.current_page === categoriesPagination.last_page ? 'disabled-dash' : ''}`}
+        onClick={handleCategoriesLastPage}
+        disabled={categoriesPagination.current_page === categoriesPagination.last_page}
+        title="Last Page"
+      >
+        <i className="fas fa-angle-double-right"></i>
+      </button>
+    );
+
+    return pages;
+  };
+
   // Load admin name from localStorage on component mount
   useEffect(() => {
     const storedAdminName = localStorage.getItem('adminName');
@@ -779,6 +1137,9 @@ const Dashboard = () => {
     }
     if (activeSection === 'articles' || activeSection === 'dashboard') {
       fetchArticles();
+    }
+    if (activeSection === 'categories') {
+      fetchCategories();
     }
   }, [activeSection]);
 
@@ -1225,12 +1586,124 @@ const Dashboard = () => {
           <section className={`section-dash ${activeSection === 'categories' ? 'active-dash' : ''}`} id="categories">
             <div className="section-header-dash">
               <h1 className="section-title-dash">Categories Management</h1>
-              <button className="btn-dash btn-primary-dash">
+              <button className="btn-dash btn-primary-dash" onClick={openAddCategoryModal}>
                 <i className="fas fa-plus"></i> Add New Category
               </button>
             </div>
-            <div className="text-center-dash mt-2-dash">
-              <p className="text-muted-dash">Categories management section - content would be loaded here</p>
+            
+            {/* Categories Table */}
+            <div className="table-container-dash">
+              <div className="table-controls-dash">
+                <div className="table-controls-left-dash">
+                  <h3>All Categories ({categoriesPagination.total})</h3>
+                  <div className="text-muted-dash">
+                    Showing {categoriesPagination.from} to {categoriesPagination.to} of {categoriesPagination.total} entries
+                  </div>
+                </div>
+                <div className="table-controls-right-dash">
+                  <div className="d-flex-dash align-center-dash gap-1-dash">
+                    <span className="text-muted-dash">Show:</span>
+                    <select 
+                      className="select-dash" 
+                      value={categoriesPagination.per_page}
+                      onChange={handleCategoriesPerPageChange}
+                    >
+                      <option value="5">5</option>
+                      <option value="10">10</option>
+                      <option value="25">25</option>
+                      <option value="50">50</option>
+                      <option value="100">100</option>
+                    </select>
+                    <span className="text-muted-dash">per page</span>
+                  </div>
+                  <button className="btn-dash btn-outline-dash" onClick={() => fetchCategories(categoriesPagination.current_page, categoriesPagination.per_page)}>
+                    <i className="fas fa-sync-alt"></i> Refresh
+                  </button>
+                </div>
+              </div>
+              
+              {/* Loading State */}
+              {categoriesLoading && (
+                <div className="loading-dash">
+                  <i className="fas fa-spinner fa-spin"></i> Loading categories...
+                </div>
+              )}
+              
+              {/* Error State */}
+              {categoriesError && (
+                <div className="error-dash">
+                  <i className="fas fa-exclamation-triangle"></i> {categoriesError}
+                </div>
+              )}
+              
+              {/* Categories Table */}
+              {!categoriesLoading && !categoriesError && (
+                <>
+                  <table className="table-dash">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Slug</th>
+                        <th>Status</th>
+                        <th>Created At</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {categoriesData.length === 0 ? (
+                        <tr>
+                          <td colSpan="5" className="text-center-dash">
+                            No data available
+                          </td>
+                        </tr>
+                      ) : (
+                        categoriesData.map((category) => (
+                          <tr key={category.id} onClick={(e) => handleTableRowClick(e)}>
+                            <td>{category.name}</td>
+                            <td>{category.slug}</td>
+                            <td>
+                              <span className={`badge-dash ${
+                                category.is_active ? 'badge-published-dash' : 'badge-archived-dash'
+                              }`}>
+                                {category.is_active ? 'Active' : 'Inactive'}
+                              </span>
+                            </td>
+                            <td>{new Date(category.created_at).toLocaleDateString('en-US')}</td>
+                            <td>
+                              <div className="table-actions-dash">
+                                <button 
+                                  className="table-action-dash table-action-view-dash"
+                                  onClick={() => handleViewCategory(category)}
+                                  title="View Details"
+                                >
+                                  <i className="fas fa-eye"></i>
+                                </button>
+                                <button 
+                                  className="table-action-dash table-action-edit-dash"
+                                  onClick={() => openEditCategoryModal(category)}
+                                  title="Edit"
+                                >
+                                  <i className="fas fa-edit"></i>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                  
+                  {/* Pagination */}
+                  <div className="pagination-dash">
+                    {renderCategoriesPagination()}
+                  </div>
+
+                  {/* Pagination Info */}
+                  <div className="pagination-info-dash text-center-dash text-muted-dash">
+                    Page {categoriesPagination.current_page} of {categoriesPagination.last_page} - {categoriesPagination.total} total categories
+                  </div>
+                </>
+              )}
             </div>
           </section>
 
@@ -1622,6 +2095,142 @@ const Dashboard = () => {
                 </>
               ) : (
                 'Update Article'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Add Category Modal */}
+      <div className={`modal-dash ${showAddCategoryModal ? 'active-dash' : ''}`}>
+        <div className="modal-content-dash" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header-dash">
+            <h2 className="modal-title-dash">Add New Category</h2>
+            <button className="modal-close-dash" onClick={closeCategoryModals}>
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+          <div className="modal-body-dash">
+            <form onSubmit={handleAddCategory}>
+              <div className="form-group-dash">
+                <label className="form-label-dash">Name</label>
+                <input 
+                  type="text" 
+                  className="form-control-dash" 
+                  name="name"
+                  value={categoryFormData.name}
+                  onChange={handleCategoryFormChange}
+                  required
+                />
+                {categoryFormErrors.name && <div className="error-message-dash">{categoryFormErrors.name[0]}</div>}
+              </div>
+              
+              <div className="form-group-dash">
+                <label className="form-label-dash">Slug</label>
+                <input 
+                  type="text" 
+                  className="form-control-dash" 
+                  name="slug"
+                  value={categoryFormData.slug}
+                  onChange={handleCategoryFormChange}
+                  required
+                  placeholder="URL-friendly version of the name"
+                />
+                {categoryFormErrors.slug && <div className="error-message-dash">{categoryFormErrors.slug[0]}</div>}
+              </div>
+              
+              <div className="form-group-dash">
+                <label className="form-label-dash">Status</label>
+                <select 
+                  className="form-control-dash" 
+                  name="status"
+                  value={categoryFormData.status}
+                  onChange={handleCategoryFormChange}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+                {categoryFormErrors.status && <div className="error-message-dash">{categoryFormErrors.status[0]}</div>}
+              </div>
+            </form>
+          </div>
+          <div className="modal-footer-dash">
+            <button className="btn-dash btn-outline-dash" onClick={closeCategoryModals}>Cancel</button>
+            <button className="btn-dash btn-primary-dash" onClick={handleAddCategory} disabled={categoryActionLoading}>
+              {categoryActionLoading ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i> Saving...
+                </>
+              ) : (
+                'Save Category'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Edit Category Modal */}
+      <div className={`modal-dash ${showEditCategoryModal ? 'active-dash' : ''}`}>
+        <div className="modal-content-dash" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header-dash">
+            <h2 className="modal-title-dash">Edit Category</h2>
+            <button className="modal-close-dash" onClick={closeCategoryModals}>
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+          <div className="modal-body-dash">
+            <form onSubmit={handleEditCategory}>
+              <div className="form-group-dash">
+                <label className="form-label-dash">Name</label>
+                <input 
+                  type="text" 
+                  className="form-control-dash" 
+                  name="name"
+                  value={categoryFormData.name}
+                  onChange={handleCategoryFormChange}
+                  required
+                />
+                {categoryFormErrors.name && <div className="error-message-dash">{categoryFormErrors.name[0]}</div>}
+              </div>
+              
+              <div className="form-group-dash">
+                <label className="form-label-dash">Slug</label>
+                <input 
+                  type="text" 
+                  className="form-control-dash" 
+                  name="slug"
+                  value={categoryFormData.slug}
+                  onChange={handleCategoryFormChange}
+                  required
+                  placeholder="URL-friendly version of the name"
+                />
+                {categoryFormErrors.slug && <div className="error-message-dash">{categoryFormErrors.slug[0]}</div>}
+              </div>
+              
+              <div className="form-group-dash">
+                <label className="form-label-dash">Status</label>
+                <select 
+                  className="form-control-dash" 
+                  name="status"
+                  value={categoryFormData.status}
+                  onChange={handleCategoryFormChange}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+                {categoryFormErrors.status && <div className="error-message-dash">{categoryFormErrors.status[0]}</div>}
+              </div>
+            </form>
+          </div>
+          <div className="modal-footer-dash">
+            <button className="btn-dash btn-outline-dash" onClick={closeCategoryModals}>Cancel</button>
+            <button className="btn-dash btn-primary-dash" onClick={handleEditCategory} disabled={categoryActionLoading}>
+              {categoryActionLoading ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i> Updating...
+                </>
+              ) : (
+                'Update Category'
               )}
             </button>
           </div>
