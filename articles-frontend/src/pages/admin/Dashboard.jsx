@@ -23,6 +23,16 @@ const Dashboard = () => {
   const [formErrors, setFormErrors] = useState({});
   const [actionLoading, setActionLoading] = useState(false);
 
+  // States for Pagination
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    last_page: 1,
+    per_page: 10,
+    total: 0,
+    from: 0,
+    to: 0
+  });
+
   // States for Articles
   const [articles, setArticles] = useState([]);
   const [articlesLoading, setArticlesLoading] = useState(false);
@@ -67,8 +77,8 @@ const Dashboard = () => {
     }
   };
 
-  // Fetch admins data
-  const fetchAdmins = async () => {
+  // Fetch admins data with pagination
+  const fetchAdmins = async (page = 1, perPage = pagination.per_page) => {
     try {
       setLoading(true);
       setError(null);
@@ -78,7 +88,7 @@ const Dashboard = () => {
         throw new Error('Authentication token not found');
       }
 
-      const response = await fetch('http://localhost:8000/api/v1/admins', {
+      const response = await fetch(`http://localhost:8000/api/v1/admins?page=${page}&per_page=${perPage}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -95,6 +105,7 @@ const Dashboard = () => {
       
       if (result.success) {
         setAdmins(result.data);
+        setPagination(result.pagination);
       } else {
         setError(result.message || 'Unknown error occurred');
       }
@@ -133,7 +144,7 @@ const Dashboard = () => {
 
       if (result.success) {
         alert('Admin deleted successfully');
-        fetchAdmins();
+        fetchAdmins(pagination.current_page, pagination.per_page);
       } else {
         alert(result.message || 'Error occurred during deletion');
       }
@@ -179,7 +190,7 @@ const Dashboard = () => {
         setShowAddModal(false);
         setFormData({ name: '', email: '', password: '', password_confirmation: '' });
         setFormErrors({});
-        fetchAdmins();
+        fetchAdmins(pagination.current_page, pagination.per_page);
       } else {
         setFormErrors(result.errors || {});
         alert(result.message || 'Error occurred during addition');
@@ -234,7 +245,7 @@ const Dashboard = () => {
         setEditingAdmin(null);
         setFormData({ name: '', email: '', password: '', password_confirmation: '' });
         setFormErrors({});
-        fetchAdmins();
+        fetchAdmins(pagination.current_page, pagination.per_page);
       } else {
         setFormErrors(result.errors || {});
         alert(result.message || 'Error occurred during update');
@@ -290,6 +301,144 @@ const Dashboard = () => {
         [name]: ''
       }));
     }
+  };
+
+  // Pagination functions
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= pagination.last_page) {
+      fetchAdmins(page, pagination.per_page);
+    }
+  };
+
+  const handlePerPageChange = (e) => {
+    const newPerPage = parseInt(e.target.value);
+    fetchAdmins(1, newPerPage);
+  };
+
+  const handleFirstPage = () => {
+    handlePageChange(1);
+  };
+
+  const handleLastPage = () => {
+    handlePageChange(pagination.last_page);
+  };
+
+  const renderPagination = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, pagination.current_page - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(pagination.last_page, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    // First page button
+    pages.push(
+      <button
+        key="first"
+        className={`pagination-item-dash ${pagination.current_page === 1 ? 'disabled-dash' : ''}`}
+        onClick={handleFirstPage}
+        disabled={pagination.current_page === 1}
+        title="First Page"
+      >
+        <i className="fas fa-angle-double-left"></i>
+      </button>
+    );
+
+    // Previous button
+    pages.push(
+      <button
+        key="prev"
+        className={`pagination-item-dash ${pagination.current_page === 1 ? 'disabled-dash' : ''}`}
+        onClick={() => handlePageChange(pagination.current_page - 1)}
+        disabled={pagination.current_page === 1}
+        title="Previous Page"
+      >
+        <i className="fas fa-chevron-left"></i>
+      </button>
+    );
+
+    // First page and ellipsis
+    if (startPage > 1) {
+      pages.push(
+        <button
+          key={1}
+          className={`pagination-item-dash ${1 === pagination.current_page ? 'active-dash' : ''}`}
+          onClick={() => handlePageChange(1)}
+        >
+          1
+        </button>
+      );
+      if (startPage > 2) {
+        pages.push(
+          <span key="ellipsis1" className="pagination-ellipsis-dash">
+            ...
+          </span>
+        );
+      }
+    }
+
+    // Page numbers
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <button
+          key={i}
+          className={`pagination-item-dash ${i === pagination.current_page ? 'active-dash' : ''}`}
+          onClick={() => handlePageChange(i)}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    // Last page and ellipsis
+    if (endPage < pagination.last_page) {
+      if (endPage < pagination.last_page - 1) {
+        pages.push(
+          <span key="ellipsis2" className="pagination-ellipsis-dash">
+            ...
+          </span>
+        );
+      }
+      pages.push(
+        <button
+          key={pagination.last_page}
+          className={`pagination-item-dash ${pagination.last_page === pagination.current_page ? 'active-dash' : ''}`}
+          onClick={() => handlePageChange(pagination.last_page)}
+        >
+          {pagination.last_page}
+        </button>
+      );
+    }
+
+    // Next button
+    pages.push(
+      <button
+        key="next"
+        className={`pagination-item-dash ${pagination.current_page === pagination.last_page ? 'disabled-dash' : ''}`}
+        onClick={() => handlePageChange(pagination.current_page + 1)}
+        disabled={pagination.current_page === pagination.last_page}
+        title="Next Page"
+      >
+        <i className="fas fa-chevron-right"></i>
+      </button>
+    );
+
+    // Last page button
+    pages.push(
+      <button
+        key="last"
+        className={`pagination-item-dash ${pagination.current_page === pagination.last_page ? 'disabled-dash' : ''}`}
+        onClick={handleLastPage}
+        disabled={pagination.current_page === pagination.last_page}
+        title="Last Page"
+      >
+        <i className="fas fa-angle-double-right"></i>
+      </button>
+    );
+
+    return pages;
   };
 
   // ==================== Articles Functions ====================
@@ -1154,11 +1303,28 @@ const Dashboard = () => {
             <div className="table-container-dash">
               <div className="table-controls-dash">
                 <div className="table-controls-left-dash">
-                  <h3>All Users ({admins.length})</h3>
+                  <h3>All Users ({pagination.total})</h3>
+                  <div className="text-muted-dash">
+                    Showing {pagination.from} to {pagination.to} of {pagination.total} entries
+                  </div>
                 </div>
                 <div className="table-controls-right-dash">
-                 
-                  <button className="btn-dash btn-outline-dash" onClick={fetchAdmins}>
+                  <div className="d-flex-dash align-center-dash gap-1-dash">
+                    <span className="text-muted-dash">Show:</span>
+                    <select 
+                      className="select-dash" 
+                      value={pagination.per_page}
+                      onChange={handlePerPageChange}
+                    >
+                      <option value="5">5</option>
+                      <option value="10">10</option>
+                      <option value="25">25</option>
+                      <option value="50">50</option>
+                      <option value="100">100</option>
+                    </select>
+                    <span className="text-muted-dash">per page</span>
+                  </div>
+                  <button className="btn-dash btn-outline-dash" onClick={() => fetchAdmins(pagination.current_page, pagination.per_page)}>
                     <i className="fas fa-sync-alt"></i> Refresh
                   </button>
                 </div>
@@ -1219,7 +1385,13 @@ const Dashboard = () => {
                                 >
                                   <i className="fas fa-edit"></i>
                                 </button>
-                              
+                                <button 
+                                  className="table-action-dash table-action-delete-dash"
+                                  onClick={() => handleDeleteAdmin(admin.id, admin.name)}
+                                  title="Delete"
+                                >
+                                  <i className="fas fa-trash"></i>
+                                </button>
                               </div>
                             </td>
                           </tr>
@@ -1228,18 +1400,14 @@ const Dashboard = () => {
                     </tbody>
                   </table>
                   
+                  {/* Pagination */}
                   <div className="pagination-dash">
-                    <button className="pagination-item-dash">
-                      <i className="fas fa-chevron-left"></i>
-                    </button>
-                    <button className="pagination-item-dash active-dash">1</button>
-                    <button className="pagination-item-dash">2</button>
-                    <button className="pagination-item-dash">3</button>
-                    <button className="pagination-item-dash">4</button>
-                    <button className="pagination-item-dash">5</button>
-                    <button className="pagination-item-dash">
-                      <i className="fas fa-chevron-right"></i>
-                    </button>
+                    {renderPagination()}
+                  </div>
+
+                  {/* Pagination Info */}
+                  <div className="pagination-info-dash text-center-dash text-muted-dash">
+                    Page {pagination.current_page} of {pagination.last_page} - {pagination.total} total users
                   </div>
                 </>
               )}

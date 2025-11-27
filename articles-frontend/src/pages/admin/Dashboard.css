@@ -954,3 +954,39 @@ textarea.form-control-dash {
 .loading-dash{
   margin-left: 1rem;
 }
+/* Pagination Styles */
+.pagination-ellipsis-dash {
+  padding: 0.5rem;
+  color: var(--gray-dash);
+}
+
+.pagination-item-dash.disabled-dash {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-item-dash.disabled-dash:hover {
+  background: transparent;
+}
+
+.pagination-info-dash {
+  padding: 1rem;
+  border-top: 1px solid var(--gray-light-dash);
+  font-size: 0.875rem;
+}
+
+/* Table Action Styles */
+.table-action-success-dash {
+  background: rgba(76, 175, 80, 0.1);
+  color: var(--success-dash);
+}
+
+.table-action-warning-dash {
+  background: rgba(255, 152, 0, 0.1);
+  color: var(--warning-dash);
+}
+
+/* Selected Row */
+.selected-dash {
+  background: rgba(67, 97, 238, 0.1) !important;
+}
